@@ -1,0 +1,335 @@
+---
+title: "BayesBinMix Census Data"
+author: "Carmen B. Rodriguez"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+library(tidycensus)
+library(tidyverse)
+library(Hmisc)
+library(reshape2)
+library(ggplot2)
+library(psych)
+library(table1)
+library(Hmisc)
+
+
+```
+
+## Load census data
+```{r}
+censusdata_bin <- readRDS("~/BayesBinMix_Project/censusdata_bin.rds")
+censusdata_bin <- readRDS("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/censusdata_bin.rds")
+
+names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
+
+```
+
+
+## Bayes Bernoulli Mixture Model
+
+```{r}
+#Load required packages 
+library(BayesBinMix)
+library(foreach)
+library(label.switching)
+library(doParallel)
+library(coda)
+
+```
+
+
+### Start with 5-year ACS (2010)
+
+For first iterations we'll set $K_{max} = 10$. The "true" number of clusters is set to $K = 10$ and the dimensionality of the multivariate distribution is equal to $d = 18$.
+
+The following prior assumptions are imposed
+
+$$K \sim \text{Truncated Poisson}(\lambda = 1)$$
+
+$$p|K \sim \text{Dirichlet}(1,..., 1_K)$$
+We set $\gamma_1=...= \gamma_K =\gamma > 0$ so that prior assumptions do not impose any particular information that separates the mixture components between them.
+
+
+
+$$\theta_{kj} \sim \text{Beta}(\alpha=1, \beta=1)$$
+
+
+```{r}
+#As in the paper, we will run 4 parallel chains with the following temperatures: (1, 0.8, 0.6, 0.4).
+#***the first chain should correspond to the actual posterior distribution, so its temperature equals to 1.
+
+Kmax<-10 #upper bound on the number of cluster
+nChains <- 4
+heats <- seq(1, 0.4, length = nChains)
+
+X1<- as.matrix(censusdata_bin$acs5_2010_bin)
+
+##Poisson- Uniform --
+acs10_1<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X1, outPrefix = "acs10_res_poiunif_1000", 
+                ClusterPrior = "poisson",
+                m = 1000) 
+
+##Uniform-Uniform
+acs10_1a<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X1, outPrefix = "acs10_res_uniuni_1000", 
+                ClusterPrior = "uniform",
+                m = 1000) 
+
+
+
+
+
+#Change prior on theta to alpha=beta = 0.5
+##Poisson-Jeffreys
+acs10_2<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X1, outPrefix = "acs10_res_poijeff_1000", 
+                ClusterPrior = "poisson", alpha = 0.5, beta = 0.5,
+                m = 1000) 
+
+
+##Uniform-Jeffreys
+acs10_2a<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X1, outPrefix = "acs10_res_unijeff_1000", 
+                ClusterPrior = "uniform",alpha = 0.5, beta = 0.5,
+                m = 1000)
+
+
+#Try 8 chains and Kmax = 20 --  SEND THIS OUTPUT TO STEPHANIE
+nChains8 <- 8
+heats8 <- seq(1, 0.6, length = nChains8)
+
+acs10_3<-coupledMetropolis(Kmax=20, nChains = nChains8, heats = heats8,
+                binaryData = X1, outPrefix = "acs10_k20_poiunif_1000", 
+                ClusterPrior = "poisson",
+                m = 1000) 
+
+check<-readRDS(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_Kmax20.rds")
+
+
+### Explore output from these models
+#rawMCMC_poiuni<- read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/rawMCMC.mapK.10.txt", header = T)
+
+#Visualize the output using coda package
+#Trace plots and histogram of theta_kj, p_k for 1st component
+summary(poires2$parameters.ecr.mcmc)
+mat1 <- matrix(c(1:4), byrow = TRUE, ncol = 2)
+layout(mat1, widths = rep(c(2, 1), 2), heights = rep(1, 4))
+mcmcSubset <- poires2$parameters.ecr.mcmc[ , c("theta.1.1", "p.1")]
+plot(mcmcSubset, auto.layout = FALSE, ask = FALSE, col = "gray40")
+
+
+#Plots like Figure 4 in the paper
+
+#(1) Illustrate the sampled values of K per chain according to the Poisson and uniform prior distribution using data from K.allChains
+
+poiKallchains<-read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/K.allChains.txt", header = T)
+
+  
+poiKallchains$m <-as.numeric(row.names(poiKallchains))
+poiKallchains1<-poiKallchains %>% pivot_longer(cols = 1:4, names_to ="Chain", values_to = "K")
+  
+
+poijKallchains<-read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poijeff_1000/K.allChains.txt", header = T)
+poijKallchains$m <-as.numeric(row.names(poijKallchains))
+poijKallchains1<-poijKallchains %>% pivot_longer(cols = 1:4, names_to ="Chain", values_to = "K")
+
+
+
+#this plot shows the generated values of K per heated chain-- note chain 1 is the original (^1)
+poiKallchains1 %>% ggplot(aes(x = m, y = K, col = as.factor(Chain))) + 
+  geom_line() + 
+  ggtitle("MC^3 Sampler Poi-Unif") + 
+  xlab("mcmc cycle")
+poijKallchains1 %>% ggplot(aes(x = m, y = K, col = as.factor(Chain))) +
+ geom_line() + 
+  ggtitle("MC^3 Sampler Poi- Jeff") +
+  xlab("mcmc cycle")
+
+
+
+#(2) Raw output of p1,...,pK  and theta_kj conditional on K=10 & K=8 (NOT REORDERED!)-- rawMCMC.mapK.10.txt
+
+poiraw1<-read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/rawMCMC.mapK.10.txt", header = T)
+poiraw2<-read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poijeff_1000/rawMCMC.mapK.8.txt", header = T)
+
+poiraw1a<-poiraw1[,paste0("p.", seq(1,10), "")]
+colnames(poiraw1a)<-paste("Component", seq(1,10), "")
+poiraw1a$iteration<-as.numeric(row.names(poiraw1a))
+poiraw1a<-poiraw1a%>% pivot_longer(cols = 1:10, names_to = "Component", values_to = "raw.mix.prop")
+poiraw1a %>% ggplot(aes(x=iteration, y = raw.mix.prop, col = as.factor(Component))) + geom_point()
+
+
+
+poiraw2a<-poiraw2[,paste0("p.", seq(1,8), "")]
+colnames(poiraw2a)<-paste("Component", seq(1,8), "")
+poiraw2a$iteration<-as.numeric(row.names(poiraw2a))
+poiraw2a<-poiraw2a%>% pivot_longer(cols = 1:8, names_to = "Component", values_to = "raw.mix.prop")
+poiraw2a %>% ggplot(aes(x=iteration, y = raw.mix.prop, col = as.factor(Component))) + geom_point()
+
+
+#(3) Reordered by ECR algorithm
+poi1ireordered<-read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/reorderedMCMC-ECR.mapK.10.txt", header = T)
+
+poi1ireorderedp<-poi1ireordered[,paste0("p.", seq(1,10), "")]
+colnames(poi1ireorderedp)<-paste("Component", seq(1,10), "")
+poi1ireorderedp$iteration<-as.numeric(row.names(poi1ireorderedp))
+poi1ireorderedp<-poi1ireorderedp %>% pivot_longer(cols = 1:10, names_to = "Component", values_to = "reordered.mix.prop")
+
+poi1ireorderedp %>% ggplot(aes(x=iteration, y = reordered.mix.prop, col = as.factor(Component))) + 
+  geom_point() +
+  ggtitle("Reordered sample (mixing weights) according to ECR Algorith (m=1000; 4 chains)") +
+  xlab("Iteration")+
+  ylab("reordered weight") + theme(legend.title=element_blank()) 
+
+
+
+#(4) Reordered by STEPHENS algorithm
+poi1ireordered_st<-read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/reorderedMCMC-STEPHENS.mapK.10.txt", header = T)
+
+poi1ireorderedp_st<-poi1ireordered_st[,paste0("p.", seq(1,10), "")]
+colnames(poi1ireorderedp_st)<-paste("Component", seq(1,10), "")
+poi1ireorderedp_st$iteration<-as.numeric(row.names(poi1ireorderedp_st))
+poi1ireorderedp_st<-poi1ireorderedp_st %>% pivot_longer(cols = 1:10, names_to = "Component", values_to = "reordered.mix.prop")
+
+poi1ireorderedp_st %>% ggplot(aes(x=iteration, y = reordered.mix.prop, col = as.factor(Component))) + 
+  geom_point() +
+  ggtitle("Reordered sample according to STEPHENS Algorith(m=1000; 4 chains)") +
+  xlab("Iteration")+
+  ylab("reordered weight") + theme(legend.title=element_blank()) 
+
+
+
+#(5) Estimated posterior distribution of the number of clusters when using different parameters (alpha,beta) on the beta prior for theta_kj. Both choices of the prior on the number of clusters are considered: truncated Poisson and uniform--- NEED. allocations.ecr.mcmc
+
+pvarK_poiuni<- read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/p.varK.txt", header = T)
+
+pvarK_poijeff<- read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poijeff_1000/p.varK.txt", header = T)
+
+pvarK_uniuni<- read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_uniuni_1000/p.varK.txt", header = T)
+
+pvarK_unijeff<- read.table(file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_unijeff_1000/p.varK.txt", header = T)
+
+
+
+#(6) classificationProbabilities.mapK.KVALUE.csv 
+#the reordered classification probabilities per observation after reordering the most probable number of clusters with the ECR algorithm.
+poiuni_classprob<- read.csv(file= "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/classificationProbabilities.mapK.10.csv")
+poiuni_classprob$CT<- as.numeric(row.names(poiuni_classprob))
+colnames(poiuni_classprob)<-c(paste("Component", seq(1,10)), "CT")
+
+
+poiuni_classprob_long<- poiuni_classprob[1:50,] %>% pivot_longer(cols = 1:10, names_to = "Component", values_to = "classprob")
+
+library(RColorBrewer)
+poiuni_classprob_long %>% ggplot(aes(x = CT, y = classprob, fill = Component)) +
+  geom_bar(stat = "identity") +
+  scale_fill_brewer(palette="Paired")
+
+
+
+
+
+
+
+#(7) z-ECR.mapK.KVALUE.txt 
+#the reordered simulated latent allocations which corresponds to the most probable model, reordered according to the ECR algorithm.
+poiuni_allocation<- read.table(file= "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/BayesBinMix_FASRC/acs10_res_poiunif_1000/reorderedSingleBestClusterings.mapK.10.txt", header = T)
+Zi_ECR <-poiuni_allocation$ECR
+
+
+
+
+#Data frame with cluster prob and Z
+dat<-cbind(poiuni_classprob, Zi_ECR)
+
+
+
+##Want to qualitatively label clusters based on the profile of census tracts
+
+
+```
+
+### ACS 2010- 2015
+```{r}
+## Second dataset
+X2<- as.matrix(censusdata_bin$acs5_2015_bin)
+
+##Poisson- Uniform
+acs15_1<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X2, outPrefix = "acs15_res_poiunif_1000", 
+                ClusterPrior = "poisson",
+                m = 1000) 
+##Uniform-Uniform
+acs15_1a<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X2, outPrefix = "acs15_res_uniuni_1000", 
+                ClusterPrior = "uniform",
+                m = 1000) 
+
+#Change prior on thera to alpha=beta = 0.5
+##Poisson-Jeffreys
+acs15_2<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X2, outPrefix = "acs15_res_poijeff_1000", 
+                ClusterPrior = "poisson", alpha = 0.5, beta = 0.5,
+                m = 1000) 
+
+##Uniform-Jeffreys
+acs15_2a<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X2, outPrefix = "acs15_res_unijeff_1000", 
+                ClusterPrior = "uniform",alpha = 0.5, beta = 0.5,
+                m = 1000)
+```
+
+
+```{r}
+## Third dataset
+X3<- as.matrix(censusdata_bin$acs5_2019_bin)
+##Poisson- Uniform
+acs19_1<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X3, outPrefix = "acs19_res_poiunif_1000", 
+                ClusterPrior = "poisson",
+                m = 1000) 
+##Uniform-Uniform
+acs19_1a<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X3, outPrefix = "acs19_res_uniuni_1000", 
+                ClusterPrior = "uniform",
+                m = 1000) 
+
+#Change prior on thera to alpha=beta = 0.5
+##Poisson-Jeffreys
+acs19_2<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X3, outPrefix = "acs19_res_poijeff_1000", 
+                ClusterPrior = "poisson", alpha = 0.5, beta = 0.5,
+                m = 1000) 
+
+
+##Uniform-Jeffreys
+acs19_2a<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
+                binaryData = X3, outPrefix = "acs19_res_unijeff_1000", 
+                ClusterPrior = "uniform",alpha = 0.5, beta = 0.5,
+                m = 1000) 
+```
+
+```{r}
+#m is the number of mcmc cycles -- each cycle consists of 10 iterations and so 10000 iterations total for now-- we do not set a burn in and do further exploration to decide
+
+#EXPLORE OUTPUT
+###-------------- TRACE PLOTS---------------
+
+#Visualize the output using coda package
+#Trace plots and histogram of theta_kj, p_k for 1st component
+# mat <- matrix(c(1:4), byrow = TRUE, ncol = 2)
+# layout(mat, widths = rep(c(2, 1), 2), heights = rep(1, 4))
+# mcmcSubset <- acs10_1$parameters.ecr.mcmc[ , c("theta.1.1", "p.1")]
+# plot(mcmcSubset, auto.layout = FALSE, ask = FALSE, col = "blue")
+# 
+# acs10_1$classificationProbabilities.ecr
+# acs10_1$parameters.ecr.mcmc
+
+```
+
+
+  
