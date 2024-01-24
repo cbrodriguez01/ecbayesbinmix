@@ -7,5 +7,5 @@ Files included here:
   *  The zip file "Output example run" contains DETAILED output (see Notion under  BayesBinMix/Output). I also saved the R environment from this as acs10_Kmax20.rds. This RDS file contains the output you will see on the function description while the other folder contains more detailed information.
 
   *  CENSUSBinPrep.R: Script used to convert data to binary variables
-  *  censusdata.RData: Original census data 
+  *  censusdata_Updated.RData: Original census data updated as of 1/23/24. I added a few more variables; for documentation see notion page
   *  censusdata_bin.rds: Census data in binary form. This contains a named list for each dataset.
