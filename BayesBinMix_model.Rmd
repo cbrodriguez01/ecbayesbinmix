@@ -79,8 +79,19 @@ acs10_1a<-coupledMetropolis(Kmax=Kmax, nChains = nChains, heats = heats,
                 ClusterPrior = "uniform",
                 m = 1000) 
 
-
-
+Kmax<-c(10,15,20) #upper bound on the number of cluster
+Kmax<-c(10,15,20) #upper bound on the number of cluster
+acs10res<-list()
+for (k in Kmax){
+  res<- coupledMetropolis(Kmax=k, nChains = nChains, 
+                heats = heats,
+                binaryData = X10, 
+                outPrefix = paste0("acs10_res_poiunif_k",k,sep = "" ), 
+                ClusterPrior = "poisson",
+                m = 500)
+  
+  acs10res<- append(acs10res,res)
+}
 
 
 #Change prior on theta to alpha=beta = 0.5
