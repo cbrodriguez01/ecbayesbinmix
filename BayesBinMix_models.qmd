@@ -1,7 +1,9 @@
 ---
-title: "BayesBinMix Census Data"
+title: "BayesBinMix Census Data Results Summarized"
 author: "Carmen B. Rodriguez"
-format: html
+format: 
+  html:
+    self-contained: TRUE
 editor: visual
 ---
 
@@ -21,6 +23,7 @@ library(label.switching)
 library(doParallel)
 library(coda)
 library(DescTools)
+library(MCMCvis)
 ```
 
 ```{r}
@@ -30,7 +33,7 @@ names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 
 ```
 
-### Start with 5-year ACS (2006-2010)
+## Start with 5-year ACS (2006-2010)
 
 For first iterations we'll set $K_{max} = 10$. The "true" number of clusters is set to $K = 10$ and the dimensionality of the multivariate distribution is equal to $d = 14$.
 
@@ -42,42 +45,40 @@ $$p|K \sim \text{Dirichlet}(1,..., 1_K)$$ We set $\gamma_1=...= \gamma_K =\gamma
 
 $$\theta_{kj} \sim \text{Beta}(\alpha=1, \beta=1)$$
 
+## Run models
+
+We will run models with different values of $K_{max}$ . That is, we will look at output where the upper bound on $K$ is `K= c(5,10,15)` .
+
 ```{r}
-set.seed(20124)
-start.time <- Sys.time()
-#As in the paper, we will run 4 parallel chains with the following temperatures: (1, 0.8, 0.6, 0.4).
-#***the first chain should correspond to the actual posterior distribution, so its temperature equals to 1.
+#Load model results--will be stored in GitHub
+res_all <- readRDS("/homes6/carmen/Other projects/ecbayesbinmix/ACS10_results.rds")
 
-nChains <- 4
-heats <- seq(1, 0.4, length = nChains)
+```
 
-X10<- as.matrix(censusdata_bin$acs5_2010_bin)
-start.time <- Sys.time()
-res<-coupledMetropolis(Kmax=10, nChains = nChains, 
-                heats = heats,
-                binaryData = X10, 
-                outPrefix = "acs10_res_poiunif_demo", 
-                ClusterPrior = "poisson",
-                m = 500)
-end.time <- Sys.time()
-time.taken <- round(end.time - start.time,2)
-time.taken
-#38 mins
+### Explore output
 
+##### (1) Trace plots-selecting a cluster at random for examination
 
+```{r}
+set.seed(2020) #year-month-day
 #-------Explore output---------
 mapK<-Mode(res$K.mcmc)[1]
 n_ses<-ncol(X10)
 
-## (1) Trace plots for convergence exploration-- cluster 1
-#print(res)
-cluster1<-c(paste0("theta.1", sep="." ,1:n_ses), "p.1")
+## (1) Trace plots for convergence exploration -- select a cluster at random
+clusterran<-sample(1:mapK, size = 1)
+clustersel<-c(paste0("theta", sep=".", clusterran, sep=".",1:n_ses), paste("p", clusterran, sep = "."))
 params_est<-res$parameters.ecr.mcmc
-traceplot(params_est[,cluster1])
 
-## (2) Illustrate the sampled values of K per chain according to the Poisson and uniform prior distribution using data from K.allChains
+#Filename is for most probable K,not the cluster being plotted
+MCMCtrace(params_est[,clustersel], filename = paste("MCMCtrace_mapK", mapK, sep = "_"), wd = "/homes6/carmen/Other projects/ecbayesbinmix/Figures")
+```
 
-poiKallchains<-read.table(file = "/homes6/carmen/Other projects/ecbayesbinmix/acs10_res_poiunif_demo/K.allChains.txt",header = T)
+##### (2) Illustrate the sampled values of K per chain according to the Poisson and uniform prior distribution using data from K.allChains--- This we can do last if necessary, otherwise we don't run it
+
+```{r}
+#| eval: false
+poiKallchains<-read.table(file = "/homes6/carmen/Other projects/acs10_res_poiunif_demo/K.allChains.txt",header = T)
 
 poiKallchains$m <-as.numeric(row.names(poiKallchains))
 poiKallchains1<-poiKallchains %>% pivot_longer(cols = 1:4, names_to ="Chain", values_to = "K")
@@ -86,115 +87,33 @@ poiKallchains1 %>% ggplot(aes(x = m, y = K, col = as.factor(Chain))) +
   geom_line() + 
   ggtitle("MC^3 Sampler Poi-Unif") + 
   xlab("mcmc cycle")
-  
 
-
-## (3) Extract mean estimates
-stats<-summary(res$parameters.ecr.mcmc)#reordered according to ECR algorithm
-res_quant<-stats$quantiles[,c(1,5)]
-res_summarized<-cbind(stats$statistics[,1:3],res_quant)
-
-
-out<- as.data.frame(res_summarized[1:126,1]) #need to make this more reproducible
-ids<-rownames(out)
-sesvars<-c("Household:Two People Per Room","Household: Lack of complete Plumbing", "Household:Median Income", ">= Bacherlor's Degree ", "Below Poverty Line", "< High School",
-           "Female Household", ">= High School","Household:No Vehicle","Household: Owner", "Household:Renter", "Unemployment","White Collar Occupation", "SNAP Benefits")
-
-
-get_probs<-function(mapK, out){
-  val<-c()
-  indices <- seq(1, nrow(out) * 1, by = mapK)
-  for (k in indices){
-    v<- out[k:((k+mapK)-1),]
-    val<-cbind(val, v)
-  }
- probs<-val
- return(probs)
-}
-prob_est<-get_probs(9, out)
-prob_est<-cbind(1:mapK,prob_est)
-colnames(prob_est)<-c("cluster",sesvars)
-
-#Clsuter probabilities
-Clusterprobs<- as.data.frame(res_summarized[127:135,1])
-colnames(Clusterprobs)<-"pi_mapK"
-Clusterprobs
 ```
 
 ### **Plots** (Patterns)
 
 ```{r}
+#| fig-cap: "Success Probabilities of Neighborhood SES variables for each cluster"
+
+#Import functions from plots.R
+source("plots.R")
 library(wesanderson)
 library(viridis)
-#create plot
-prob_est1<-as.data.frame(prob_est)
-prob_est1$cluster
-prob_est_long<- prob_est1 %>% pivot_longer(!cluster, names_to = "NSES_VARS",values_to = "theta_kj")
 
+sesvars<-c("Household:Two People Per Room","Household: Lack of complete Plumbing", "Household:Median Income", ">= Bacherlor's Degree ", "Below Poverty Line", "< High School",
+           "Female Household", ">= High School","Household:No Vehicle","Household: Owner", "Household:Renter", "Unemployment","White Collar Occupation", "SNAP Benefits")
+
+
+
+# Other color options
 viridis_palette <- viridis(14)
 custom_colors <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", 
                    "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
                    "#ff0000", "#00ff00", "#0000ff", "#ffff00")
 
-generate_pastel_colors <- function(n) {
-  hues <- seq(0, 1, length.out = n + 1)[-1]  # Equally spaced hues
-  s <- 0.4  # Saturation for pastel colors
-  v <- 0.9  # Brightness for pastel colors
-  hsv(h = hues, s = s, v = v)
-}
-
 # Generate 14 pastel colors
 pastel_palette <- generate_pastel_colors(14)
 
+plot_thetakj(reslst = res, mapK = 9, sesvars= sesvars, color_palette = pastel_palette)
 
-p1<-prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj)) +
-                geom_col(aes(fill = NSES_VARS)) +
-              facet_wrap(~cluster) + scale_fill_manual(values = viridis_palette)+ labs(x= "Neighborhood SDOH variables",  
-                     y = "Probability",
-                     fill = "") +
-               theme(text = element_text(size = 10),
-                    axis.text.x = element_blank(), 
-                    axis.title.x = element_text(size = 8, color = "black", face = "bold"),
-                    axis.title.y = element_text(size = 8, color = "black", face = "bold"),
-                    legend.title = element_text(size = 8, color = "black", face = "bold"),
-                    legend.text = element_text(size = 6, color = "black"),
-                    legend.position = "bottom")
-            
-
-
-
-p2<-prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj)) +
-                geom_col(aes(fill = NSES_VARS)) +
-              facet_wrap(~cluster) + scale_fill_manual(values = pastel_palette)+ labs(x= "Neighborhood SDOH variables",  
-                     y = "Probability",
-                     fill = "") +
-               theme(text = element_text(size = 10),
-                    axis.text.x = element_blank(), 
-                    axis.title.x = element_text(size = 8, color = "black", face = "bold"),
-                    axis.title.y = element_text(size = 8, color = "black", face = "bold"),
-                    legend.title = element_text(size = 8, color = "black", face = "bold"),
-                    legend.text = element_text(size = 6, color = "black"),
-                    legend.position = "bottom")
-            
-  
-  
-  p1
-  p2
-
-ggsave("/homes6/carmen/Other projects/ecbayesbinmix/fig_temp.pdf", plot = p2, width = 8, height = 8)
-
-
-```
-
-```{r}
-generate_pastel_colors <- function(n) {
-  hues <- seq(0, 1, length.out = n + 1)[-1]  # Equally spaced hues
-  s <- 0.4  # Saturation for pastel colors
-  v <- 0.9  # Brightness for pastel colors
-  hsv(h = hues, s = s, v = v)
-}
-
-# Generate 14 pastel colors
-pastel_palette <- generate_pastel_colors(14)
-pastel_palette
 ```
