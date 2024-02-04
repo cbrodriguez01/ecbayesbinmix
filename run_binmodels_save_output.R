@@ -42,22 +42,34 @@ run_models<-function(dataset,Kmax, nChains, m, ClusterPrior, wd, acsid){
   return(list(res, time.taken))
 }
 
-censusdata_bin <- readRDS("/homes6/carmen/Other projects/ecbayesbinmix/censusdata_bin.rds")
+#---DFCI server
+#censusdata_bin <- readRDS("/homes6/carmen/Other projects/ecbayesbinmix/censusdata_bin.rds")
+#---My mac
+#censusdata_bin <- readRDS("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/censusdata_bin.rds")
+
+#---FASRC
+censusdata_bin <- readRDS("/n/home03/crodriguezcabrera/ecbayesbinmix/censusdata_bin.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
-dataset<- as.matrix(censusdata_bin$acs5_2010_bin)
+datasets<- list(acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
+
 Kmaxes<-c(5,10,15)
 m<-500
 nChains<-4
-wd<-"/homes6/carmen/Other projects/"
-acsid<- "acs10"
+#wd<-"/homes6/carmen/Other projects/"
+wd<-"/n/home03/crodriguezcabrera/BayesBinMix_Project/"
+acsid<- c("acs15", "acs19")
+
+
 
 res_all<-list()
-for (k in Kmaxes){
-  model.res<-run_models(dataset = dataset, Kmax = k , nChains= nChains, m= m, ClusterPrior, wd = wd, acsid = acsid)
-  
-  res_all<-append(res_all, model.res)
+for (i in 1:2){
+  for (k in Kmaxes){
+    model.res<-run_models(dataset = datasets[acsid[i]], Kmax = k , nChains= nChains, m= m, ClusterPrior, wd = wd, acsid = acsid)
+    
+    res_all<-append(res_all, as.name(acsid[i])=model.res)
+  }
 }
 
 
-saveRDS(res_all, "/homes6/carmen/Other projects/ecbayesbinmix/ACS10_results.rds")
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACS15_19_results.rds")
 
