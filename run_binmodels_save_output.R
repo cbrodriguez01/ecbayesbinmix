@@ -66,10 +66,12 @@ for (i in 1:2){
   for (k in Kmaxes){
     model.res<-run_models(dataset = datasets[acsid[i]], Kmax = k , nChains= nChains, m= m, ClusterPrior, wd = wd, acsid = acsid)
     
-    res_all<-append(res_all, as.name(acsid[i])=model.res)
+    res_all<-append(res_all, model.res)
   }
+  
 }
 
 
 saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACS15_19_results.rds")
+
 
