@@ -39,7 +39,9 @@ run_models<-function(dataset,Kmax, nChains, m, ClusterPrior, wd, acsid){
   
   end.time <- Sys.time()
   time.taken <- round(end.time - start.time,2)
-  return(list(res, time.taken))
+  out.list<-list(res, time.taken)
+  names(out.list)<-c(paste0("res_", acsid,sep = "_",Kmax), "time.taken")
+  return(out.list)
 }
 
 #---DFCI server
@@ -64,12 +66,13 @@ acsid<- c("acs15", "acs19")
 res_all<-list()
 for (i in 1:2){
   for (k in Kmaxes){
-    model.res<-run_models(dataset = datasets[acsid[i]], Kmax = k , nChains= nChains, m= m, ClusterPrior, wd = wd, acsid = acsid)
+    
+    model.res<-run_models(dataset = datasets[[acsid[i]]], Kmax = k , nChains= nChains, m= m, ClusterPrior, wd = wd, acsid = acsid[i])
     
     res_all<-append(res_all, model.res)
   }
-  
 }
+
 
 
 saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACS15_19_results.rds")
