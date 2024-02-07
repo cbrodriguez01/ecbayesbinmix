@@ -52,17 +52,66 @@ We will run models with different values of $K_{max}$ . That is, we will look at
 
 ```{r}
 #Load model results--will be stored in GitHub
-res_all <- readRDS("./ACS10_results.rds")
-res_5<-res_all[[1]]
-res_10<-res_all[[3]]
-res_15<-res_all[[5]]
+res_acs10<- readRDS("./ACS10_results.rds")
+res_5<-res_acs10[[1]]
+res_10<-res_acs10[[3]]
+res_15<-res_acs10[[5]]
 ```
 
 | **Kmax** | **Cluster Prior**     | **Most Probable K (mapK)** | **DIC** |
 |----------|-----------------------|----------------------------|---------|
-| 5        | Truncated Poisson (1) |  5                         |         |
+| 5        | Truncated Poisson (1) | 5                          |         |
 | 10       | Truncated Poisson (1) | 4                          |         |
 | 15       | Truncated Poisson (1) | 6                          |         |
+
+: **Table 1.** Results of ACS 2006-2010
+
+```{r}
+#| echo: true
+#| eval: true
+#| output: false
+res_all <- readRDS("./ACS15_19_results.rds")
+
+#ACS 2015
+res_acs15_5<-res_all$res_acs15_5
+res_acs15_10<-res_all$res_acs15_10
+res_acs15_15<-res_all$res_acs15_15
+
+Mode(res_acs15_5$K.mcmc)[1]
+Mode(res_acs15_10$K.mcmc)[1]
+Mode(res_acs15_15$K.mcmc)[1]
+```
+
+| **Kmax** | **Cluster Prior**     | **Most Probable K (mapK)** |
+|----------|-----------------------|----------------------------|
+| 5        | Truncated Poisson (1) | 5                          |
+| 10       | Truncated Poisson (1) | 4                          |
+| 15       | Truncated Poisson (1) | 8                          |
+
+: **Table 2.** Results ACS 2015
+
+```{r}
+#| echo: true
+#| eval: true
+#| output: false
+
+#ACS 2019
+res_acs19_5<-res_all$res_acs19_5
+res_acs19_10<-res_all$res_acs19_10
+res_acs19_15<-res_all$res_acs19_15
+
+Mode(res_acs19_5$K.mcmc)[1]
+Mode(res_acs19_10$K.mcmc)[1]
+Mode(res_acs19_15$K.mcmc)[1]
+```
+
+| **Kmax** | **Cluster Prior**     | **Most Probable K (mapK)** |
+|----------|-----------------------|----------------------------|
+| 5        | Truncated Poisson (1) | 5                          |
+| 10       | Truncated Poisson (1) | 6                          |
+| 15       | Truncated Poisson (1) | 8                          |
+
+: **Table 3.** Results ACS 2019
 
 ### Explore output
 
@@ -100,7 +149,7 @@ poiKallchains1 %>% ggplot(aes(x = m, y = K, col = as.factor(Chain))) +
 
 ```
 
-### **Plots** (Patterns)
+### **Plots** (Patterns for ACS 2006-2010)
 
 ```{r}
 #Import functions from plots.R
@@ -196,6 +245,85 @@ p_15_group
 ```{r}
 #Class probabilities
 stats<-cbind(summary(res_15$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_15$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+
+tail(stats, mapK) %>% kable()
+```
+
+### **Plots** (Patterns for ACS 2015)
+
+```{r}
+#| layout-ncol: 2
+#| fig-width: 10
+#| fig-height: 10
+#| fig-cap: 
+#|   - "Individual Neighborhood SES variables"
+#|   -  "Grouped Neighborhood  SES variables"
+#Kmax = 5
+mapK<-Mode(res_acs15_5$K.mcmc)[1]  #tells you mapK
+fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+dat_5<-preparedat_fig(res_acs15_5,mapK,sesvars)
+p_5_indiv<-plot_thetakj_indiv(prob_est_long = dat_5, mapK,color_palette = pastel_palette1, fig_title)
+p_5_group<-plot_thetakj_group(prob_est_long = dat_5, mapK,color_palette = pastel_palette2, fig_title)
+
+p_5_indiv
+p_5_group
+```
+
+```{r}
+#Class probabilities
+stats<-cbind(summary(res_acs15_5$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs15_5$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+
+tail(stats, mapK) %>% kable()
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| fig-width: 10
+#| fig-height: 10
+#| fig-cap: 
+#|   - "Individual Neighborhood SES variables"
+#|   -  "Grouped Neighborhood  SES variables"
+#Kmax = 10
+mapK<-Mode(res_acs15_10$K.mcmc)[1]  #tells you mapK
+fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+dat_10<-preparedat_fig(res_acs15_10,mapK,sesvars)
+p_10_indiv<-plot_thetakj_indiv(prob_est_long = dat_10, mapK,color_palette = pastel_palette1, fig_title)
+p_10_group<-plot_thetakj_group(prob_est_long = dat_10, mapK,color_palette = pastel_palette2, fig_title)
+
+p_10_indiv
+p_10_group
+```
+
+```{r}
+#Class probabilities
+stats<-cbind(summary(res_acs15_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs15_10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+
+tail(stats, mapK) %>% kable()
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| fig-width: 10
+#| fig-height: 10
+#| fig-cap: 
+#|   - "Individual Neighborhood SES variables"
+#|   -  "Grouped Neighborhood  SES variables"
+#Kmax = 15
+mapK<-Mode(res_acs15_15$K.mcmc)[1]  #tells you mapK
+fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+dat_15<-preparedat_fig(res_acs15_15,mapK,sesvars)
+p_15_indiv<-plot_thetakj_indiv(prob_est_long = dat_15, mapK,color_palette = pastel_palette1, fig_title)
+p_15_group<-plot_thetakj_group(prob_est_long = dat_15, mapK,color_palette = pastel_palette2, fig_title)
+p_15_indiv
+p_15_group
+
+```
+
+```{r}
+#Class probabilities
+stats<-cbind(summary(res_acs15_15$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs15_15$parameters.ecr.mcmc)$quantiles[,c(1,5)])
 
 tail(stats, mapK) %>% kable()
 ```
