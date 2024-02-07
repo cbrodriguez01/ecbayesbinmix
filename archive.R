@@ -103,3 +103,67 @@ p1
 p2
 
 ggsave("/homes6/carmen/Other projects/ecbayesbinmix/Figures/fig_temp.pdf", plot = p2, width = 8, height = 8)
+
+fig_title = paste("Success Probabilities of Neighborhood SES variables when mapK=", mapK, sep="")
+
+# Other color options
+viridis_palette <- viridis(14)
+custom_colors <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", 
+                   "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+                   "#ff0000", "#00ff00", "#0000ff", "#ffff00")
+
+# Generate 14 pastel colors
+pastel_palette <- generate_pastel_colors(14)
+
+plot_thetakj(reslst = res, mapK = 9, sesvars= sesvars, color_palette = pastel_palette)
+
+
+mapK <- Mode(res_5$K.mcmc)[1]
+n_ses<-length(sesvars)
+dim<-n_ses*mapK
+stats<-summary(res_5$parameters.ecr.mcmc)$statistics[,1] #get the mean, can also get SE and quantiles 
+
+temp<-as.data.frame(stats[1:dim])
+
+probs<-c()
+indices <- seq(1, nrow(temp) * 1, by = mapK)
+for (k in indices){
+  v<- temp[k:((k+mapK)-1),]
+  probs<-cbind(probs, v)
+}
+
+prob_est<-cbind(1:mapK,probs)
+colnames(prob_est)<-c("cluster",sesvars)
+
+#Long format for ggplot
+prob_est_long<- prob_est %>% as.data.frame() %>% 
+  pivot_longer(!cluster, names_to = "NSES_VARS",values_to = "theta_kj")
+
+# Group variables
+prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
+  NSES_VARS %in% c("Household:Two People Per Room","Household: Lack of complete Plumbing", "Household:No Vehicle","Household: Owner", "Household:Renter", "Female Household") ~ "Household",
+  NSES_VARS %in% c(">= Bacherlor's Degree", "< High School", ">= High School") ~ "Education",
+  NSES_VARS %in% c("Unemployment","White Collar Occupation") ~ "Occupation",
+  NSES_VARS %in% c("Median Household Income","Below Poverty Line","SNAP Benefits") ~ "Income",))
+
+color_palette <-generate_pastel_colors(4)
+
+# Figure title
+fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+
+# Generate plot
+prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj)) +
+  geom_col(aes(fill = as.factor(NSES_group))) +
+  facet_wrap(~cluster, nrow = mapK) + scale_fill_manual(values = color_palette) + 
+  labs(title = fig_title, x= "",   y = "Probability",fill = "Neighborhood SES variables") +
+  theme(text = element_text(size = 12),
+        axis.text.x = element_blank(), 
+        axis.title.x = element_text(size = 8, color = "black", face = "bold"),
+        axis.title.y = element_text(size = 8, color = "black", face = "bold"),
+        axis.ticks = element_blank(),
+        legend.title = element_text(size = 8, color = "black", face = "bold"),
+        legend.text = element_text(size = 8, color = "black"),
+        legend.position = "right")
+
+
+

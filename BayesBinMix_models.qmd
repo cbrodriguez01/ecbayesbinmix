@@ -8,6 +8,8 @@ editor: visual
 ---
 
 ```{r}
+#| warning: false
+#| output: false
 #Load packages
 library(tidyverse)
 library(Hmisc)
@@ -24,18 +26,17 @@ library(doParallel)
 library(coda)
 library(DescTools)
 library(MCMCvis)
+library(knitr)
 ```
 
 ```{r}
 #Load census data
-censusdata_bin <- readRDS("/homes6/carmen/Other projects/ecbayesbinmix/censusdata_bin.rds")
+censusdata_bin <- readRDS("./censusdata_bin.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 
 ```
 
-## Start with 5-year ACS (2006-2010)
-
-For first iterations we'll set $K_{max} = 10$. The "true" number of clusters is set to $K = 10$ and the dimensionality of the multivariate distribution is equal to $d = 14$.
+The dimensionality of the multivariate distribution is equal to $d = 14$.
 
 The following prior assumptions are imposed
 
@@ -51,27 +52,36 @@ We will run models with different values of $K_{max}$ . That is, we will look at
 
 ```{r}
 #Load model results--will be stored in GitHub
-res_all <- readRDS("/homes6/carmen/Other projects/ecbayesbinmix/ACS10_results.rds")
-
+res_all <- readRDS("./ACS10_results.rds")
+res_5<-res_all[[1]]
+res_10<-res_all[[3]]
+res_15<-res_all[[5]]
 ```
+
+| **Kmax** | **Cluster Prior**     | **Most Probable K (mapK)** | **DIC** |
+|----------|-----------------------|----------------------------|---------|
+| 5        | Truncated Poisson (1) |  5                         |         |
+| 10       | Truncated Poisson (1) | 4                          |         |
+| 15       | Truncated Poisson (1) | 6                          |         |
 
 ### Explore output
 
-##### (1) Trace plots-selecting a cluster at random for examination
+##### (1) Trace plots-selecting a cluster at random for examination- Example when Kmax = 5
 
 ```{r}
+#| eval: false
 set.seed(2020) #year-month-day
 #-------Explore output---------
-mapK<-Mode(res$K.mcmc)[1]
-n_ses<-ncol(X10)
+mapK<-Mode(res_5$K.mcmc)[1]  #tells you mapK
+n_ses<-ncol(censusdata_bin$acs5_2010_bin)
 
 ## (1) Trace plots for convergence exploration -- select a cluster at random
 clusterran<-sample(1:mapK, size = 1)
 clustersel<-c(paste0("theta", sep=".", clusterran, sep=".",1:n_ses), paste("p", clusterran, sep = "."))
-params_est<-res$parameters.ecr.mcmc
+params_est<-res_5$parameters.ecr.mcmc
 
 #Filename is for most probable K,not the cluster being plotted
-MCMCtrace(params_est[,clustersel], filename = paste("MCMCtrace_mapK", mapK, sep = "_"), wd = "/homes6/carmen/Other projects/ecbayesbinmix/Figures")
+MCMCtrace(params_est[,clustersel], filename = paste("MCMCtrace_mapK", mapK, sep = "_"), wd = "./Figures")
 ```
 
 ##### (2) Illustrate the sampled values of K per chain according to the Poisson and uniform prior distribution using data from K.allChains--- This we can do last if necessary, otherwise we don't run it
@@ -93,16 +103,12 @@ poiKallchains1 %>% ggplot(aes(x = m, y = K, col = as.factor(Chain))) +
 ### **Plots** (Patterns)
 
 ```{r}
-#| fig-cap: "Success Probabilities of Neighborhood SES variables for each cluster"
-
 #Import functions from plots.R
 source("plots.R")
 library(wesanderson)
 library(viridis)
-
-sesvars<-c("Household:Two People Per Room","Household: Lack of complete Plumbing", "Household:Median Income", ">= Bacherlor's Degree ", "Below Poverty Line", "< High School",
-           "Female Household", ">= High School","Household:No Vehicle","Household: Owner", "Household:Renter", "Unemployment","White Collar Occupation", "SNAP Benefits")
-
+sesvars<-c("Two People Per Room","Lack of complete Plumbing", "Median Household Income", ">= Bacherlor's Degree", "Below Poverty Line", "< High School",
+           "Female Household", ">= High School","No Vehicle","Owner", "Renter", "Unemployment","White Collar Occupation", "SNAP Benefits")
 
 
 # Other color options
@@ -112,8 +118,84 @@ custom_colors <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
                    "#ff0000", "#00ff00", "#0000ff", "#ffff00")
 
 # Generate 14 pastel colors
-pastel_palette <- generate_pastel_colors(14)
+pastel_palette1 <- generate_pastel_colors(14)
+pastel_palette2<-generate_pastel_colors(4)
 
-plot_thetakj(reslst = res, mapK = 9, sesvars= sesvars, color_palette = pastel_palette)
+```
 
+```{r}
+#| layout-ncol: 2
+#| fig-width: 10
+#| fig-height: 10
+#| fig-cap: 
+#|   - "Individual Neighborhood SES variables"
+#|   -  "Grouped Neighborhood  SES variables"
+#Kmax = 5
+mapK<-Mode(res_5$K.mcmc)[1]  #tells you mapK
+fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+dat_5<-preparedat_fig(res_5,mapK,sesvars)
+p_5_indiv<-plot_thetakj_indiv(prob_est_long = dat_5, mapK,color_palette = pastel_palette1, fig_title)
+p_5_group<-plot_thetakj_group(prob_est_long = dat_5, mapK,color_palette = pastel_palette2, fig_title)
+
+p_5_indiv
+p_5_group
+```
+
+```{r}
+#Class probabilities
+stats<-cbind(summary(res_5$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_5$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+
+tail(stats, mapK) %>% kable()
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| fig-width: 10
+#| fig-height: 10
+#| fig-cap: 
+#|   - "Individual Neighborhood SES variables"
+#|   -  "Grouped Neighborhood  SES variables"
+#Kmax = 10
+mapK<-Mode(res_10$K.mcmc)[1]  #tells you mapK
+fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+dat_10<-preparedat_fig(res_10,mapK,sesvars)
+p_10_indiv<-plot_thetakj_indiv(prob_est_long = dat_10, mapK,color_palette = pastel_palette1, fig_title)
+p_10_group<-plot_thetakj_group(prob_est_long = dat_10, mapK,color_palette = pastel_palette2, fig_title)
+
+p_10_indiv
+p_10_group
+
+```
+
+```{r}
+#Class probabilities
+stats<-cbind(summary(res_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+
+tail(stats, mapK) %>% kable()
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| fig-width: 10
+#| fig-height: 10
+#| fig-cap: 
+#|   - "Individual Neighborhood SES variables"
+#|   -  "Grouped Neighborhood  SES variables"
+#Kmax = 15
+mapK<-Mode(res_15$K.mcmc)[1]  #tells you mapK
+fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+dat_15<-preparedat_fig(res_15,mapK,sesvars)
+p_15_indiv<-plot_thetakj_indiv(prob_est_long = dat_15, mapK,color_palette = pastel_palette1, fig_title)
+p_15_group<-plot_thetakj_group(prob_est_long = dat_15, mapK,color_palette = pastel_palette2, fig_title)
+p_15_indiv
+p_15_group
+```
+
+```{r}
+#Class probabilities
+stats<-cbind(summary(res_15$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_15$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+
+tail(stats, mapK) %>% kable()
 ```
