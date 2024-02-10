@@ -17,4 +17,4 @@ export R_LIBS_USER=$HOME/apps/R_4.3.1:$R_LIBS_USER
 cd $HOME/ecbayesbinmix/
 
 #Run the R script
-Rscript run_binmodels_save_output.R
+Rscript run_binmodels_save_output_edited.R
