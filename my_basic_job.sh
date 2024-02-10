@@ -4,8 +4,8 @@
 #SBATCH -p shared 
 #SBATCH --mem=64000 
 #SBATCH -t 0-5:00:00 
-#SBATCH -o myoutput_acs1519_2.5_%j.out 
-#SBATCH -e myerrors_acs1519_2.5_%j.err  
+#SBATCH -o myoutput_acs101519_2.10_%j.out 
+#SBATCH -e myerrors_acs101519_2.10_%j.err  
 #SBATCH --mail-type=END  
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu  
 
