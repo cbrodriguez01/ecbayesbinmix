@@ -41,10 +41,22 @@ preparedat_fig<-function(reslst,mapK, sesvars){
   
   # Group variables
   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
-    NSES_VARS %in% c("Two People Per Room","Lack of complete Plumbing", "No Vehicle","Owner", "Renter", "Female Household") ~ "Household",
-    NSES_VARS %in% c(">= Bacherlor's Degree", "< High School", ">= High School") ~ "Education",
-    NSES_VARS %in% c("Unemployment","White Collar Occupation") ~ "Occupation",
-    NSES_VARS %in% c("Median Household Income","Below Poverty Line","SNAP Benefits") ~ "Income",))
+    NSES_VARS %in% c("Two People Per Room","Lack of complete Plumbing", "No Vehicle","Owner", "Renter", "Female Household") ~ 1,
+    NSES_VARS %in% c(">= Bacherlor's Degree", "< High School", ">= High School") ~ 2,
+    NSES_VARS %in% c("Unemployment","White Collar Occupation") ~ 4,
+    NSES_VARS %in% c("Median Household Income","Below Poverty Line","SNAP Benefits") ~ 3,))
+  
+  
+  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Household", "Education", "Income", "Occupation"))
+  #print(table(prob_est_long$NSES_group))
+  
+  
+  prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
+    
+    #factor(dat_10$NSES_VARS, levels = c("Two People Per Room","Lack of complete Plumbing","No Vehicle",
+#                                                                "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
+ #                                                               "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment",
+  #                                                              "White Collar Occupation"))
   
   return(prob_est_long)
 }
@@ -89,15 +101,22 @@ plot_thetakj_indiv<-function(prob_est_long,mapK, color_palette, fig_title){
 #' #' @return
 #' Returns a `ggplot2` object displaying a probabilities of each ses var and cluster by NSES assigned group
 #' 
+#aes(fill = as.factor(NSES_group))
+
+
 
 plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
+  
+  #scalediscrete<-c("Two People Per Room","Lack of complete Plumbing","No Vehicle", "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
+     #              "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment", "White Collar Occupation")
+  
   # Generate plot
-  prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj)) +
-    geom_col(aes(fill = as.factor(NSES_group))) +
+  prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
+    geom_col()  +
     facet_wrap(~cluster, nrow = mapK) + scale_fill_manual(values = color_palette) + 
     labs(title = fig_title, x= "",   y = "Probability",fill = "Neighborhood SES variables") +
     theme(text = element_text(size = 12),
-          axis.text.x = element_text(size=6.8, angle =45, vjust = 0.5), 
+          axis.text.x = element_text(size=6.8, angle=45, vjust = 0.75, hjust = 0.88), 
           axis.title.x = element_text(size = 8, color = "black", face = "bold"),
           axis.title.y = element_text(size = 8, color = "black", face = "bold"),
           #axis.ticks = element_blank(),
@@ -108,4 +127,25 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
   
 }
 
+
+plot_thetakj_group1<-function(prob_est_long,mapK, color_palette, fig_title){
+  
+  scalediscrete<-c("Two People Per Room","Lack of complete Plumbing","No Vehicle", "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
+                   "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment", "White Collar Occupation")
+  # Generate plot
+  prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
+    geom_col() + coord_flip() +
+    facet_wrap(~cluster, nrow = mapK) + scale_fill_manual(values = color_palette) + 
+    labs(title = fig_title, x= "",   y = "Probability",fill = "Neighborhood SES variables") +
+    theme(text = element_text(size = 12),
+          axis.text.x = element_text(size=8), 
+          axis.title.x = element_text(size = 5, color = "black", face = "bold"),
+          axis.title.y = element_text(size = 8, color = "black", face = "bold"),
+          #axis.ticks = element_blank(),
+          legend.title = element_text(size = 8, color = "black", face = "bold"),
+          legend.text = element_text(size = 8, color = "black"),
+          legend.position = "right")
+  
+  
+}
 
