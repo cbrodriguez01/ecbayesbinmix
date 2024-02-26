@@ -58,7 +58,7 @@ We will run models with different values of $K_{max}$ . That is, we will look at
 
 -   We only show patterns for ACS 2006-2010 and ACS 2011-2015 when $K_{max} = 10$, resulting in a most probable model (henceforth refered as mapK) of mapK = 4.
 
--    Tried to add labels/descriptions to each cluster based on success probabilities of the included neighborhood SES variables.
+-   Tried to add labels/descriptions to each cluster based on success probabilities of the included neighborhood SES variables.
 
 -   
 
@@ -66,20 +66,8 @@ We will run models with different values of $K_{max}$ . That is, we will look at
 #Load model results--will be stored in GitHub
 res_acs10<- readRDS("./ACS10_results.rds")
 res_acs10_10<-res_acs10[[3]]
-res_acs10_15<-res_acs10[[5]]
-
-#DIC calculation
-
-
-
+#res_acs10_15<-res_acs10[[5]]
 ```
-
-| **Kmax** | **Cluster Prior**     | **Most Probable K (mapK)** | **DIC** |
-|----------|-----------------------|----------------------------|---------|
-| 10       | Truncated Poisson (1) | 4                          |         |
-| 15       | Truncated Poisson (1) | 6                          |         |
-
-: **Table 1.** Results of ACS 2006-2010
 
 ```{r}
 #| echo: true
@@ -89,18 +77,11 @@ res_all <- readRDS("./ACS15_19_results.rds")
 
 #ACS 2015
 res_acs15_10<-res_all$res_acs15_10
-res_acs15_15<-res_all$res_acs15_15
+#res_acs15_15<-res_all$res_acs15_15
 
 Mode(res_acs15_10$K.mcmc)[1]
-Mode(res_acs15_15$K.mcmc)[1]
+#Mode(res_acs15_15$K.mcmc)[1]
 ```
-
-| **Kmax** | **Cluster Prior**     | **Most Probable K (mapK)** |
-|----------|-----------------------|----------------------------|
-| 10       | Truncated Poisson (1) | 4                          |
-| 15       | Truncated Poisson (1) | 8                          |
-
-: **Table 2.** Results ACS 2011-2015
 
 ```{r}
 #| echo: true
@@ -109,18 +90,11 @@ Mode(res_acs15_15$K.mcmc)[1]
 
 #ACS 2019
 res_acs19_10<-res_all$res_acs19_10
-res_acs19_15<-res_all$res_acs19_15
+#res_acs19_15<-res_all$res_acs19_15
 
 Mode(res_acs19_10$K.mcmc)[1]
-Mode(res_acs19_15$K.mcmc)[1]
+#Mode(res_acs19_15$K.mcmc)[1]
 ```
-
-| **Kmax** | **Cluster Prior**     | **Most Probable K (mapK)** |
-|----------|-----------------------|----------------------------|
-| 10       | Truncated Poisson (1) | 6                          |
-| 15       | Truncated Poisson (1) | 8                          |
-
-: **Table 3.** Results ACS 2015-2019
 
 ### **Plots** (Patterns for ACS 2006-2010)
 
@@ -265,7 +239,7 @@ p_15_group
 
 -   **Cluster 4:** Higher success probabilities for owners, unemployment, lower educational levels, female household.
 
-    -   ***Summarize this as possibly the "Low SES " category.***
+    -   ***Summarize this as possibly the "Low SES" category.***
 
 #### **Cluster weights:**
 
@@ -306,49 +280,89 @@ tail(stats, mapK) %>% kable()
 
 ### How deterministic is the model?
 
-Need to look more into this. Not sure this is the best way to show it.
-
 ```{r}
+mapK<-Mode(res_acs10_10$K.mcmc)[1]  #tells you mapK
 #For ACS 2010 and mapK = 4
 classificationprobs_10<-res_acs10_10$classificationProbabilities.ecr
-classificationprobs_10$CT<-row.names(classificationprobs_10)
+# Add cluster classification based on maximum probability 
+maxProb<-apply(classificationprobs_10, 1, max)
+ClusterAssignment<-res_acs10_10$clusterMembershipPerMethod[,2]
+
+classificationprobs_10$ClusterAssignment<-ClusterAssignment
+classificationprobs_10$maxProb<-maxProb
 
 #Class probabilities
-stats<-cbind(summary(res_acs10_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs10_10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
-
-tail(stats, mapK) %>% kable()
-
-colnames(classificationprobs_10)<-c("cluster 1: 0.29", "cluster 2: 0.33", "cluster 3: 0.21", "cluster 4: 0.17", "CT")
-
-classificationprobs_10_l<-classificationprobs_10 %>% pivot_longer(cols =1:4,names_to = "Cluster", values_to = "Probability")
+# stats<-cbind(summary(res_acs10_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs10_10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+# tail(stats, mapK) %>% kable()
 
 
-classificationprobs_10_l%>%  ggplot(aes(x=Cluster, y= Probability, fill=Cluster)) +
-  geom_boxplot() + labs(fill = "Cluster Assignment", y = "Classification Probability after ECR algorithm", x= "Census Tract Cluster Assignment")
+#Prep Data for boxplot
+classificationprobs_10$CT<-row.names(classificationprobs_10) #I will add actual tracts later
+
+classificationprobs_10$ClusterAssignment<- factor(classificationprobs_10$ClusterAssignment, levels = 1:4, labels = c("cluster 1: 0.29", "cluster 2: 0.33", "cluster 3: 0.21", "cluster 4: 0.17"))
+
+#classificationprobs_10_l<-classificationprobs_10 %>% pivot_longer(cols =1:4,names_to = "Cluster", values_to = "Probability")
+
+datplot<- classificationprobs_10 %>% select(CT,ClusterAssignment, maxProb)
 
 
+datplot%>%  ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
+  geom_boxplot() +
+  labs(fill = "Cluster Assignment", y = "Classification Probability after ECR algorithm", x= "")
+
+dattable<-datplot %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
+                    `Cluster Assignment` = ClusterAssignment) 
+
+table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, data= dattable, overall = F)
+  
+
+```
+
+```{r}
 #For ACS 2015 and mapK = 4
 classificationprobs_15<-res_acs15_10$classificationProbabilities.ecr
 classificationprobs_15$CT<-row.names(classificationprobs_15)
 
 
-stats<-cbind(summary(res_acs15_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs15_10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
-
-tail(stats, mapK) %>% kable()
+# stats<-cbind(summary(res_acs15_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs15_10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+# 
+# tail(stats, mapK) %>% kable()
 
 
 colnames(classificationprobs_15)<-c("cluster 1: 0.2956", "cluster 2: 0.2960", "cluster 3: 0.2044", "cluster 4: 0.2038", "CT")
 
-summary(classificationprobs_15$`cluster 1: 0.2956`)
-summary(classificationprobs_15$`cluster 2: 0.2960`)
-summary(classificationprobs_15$`cluster 3: 0.2044`)
-summary(classificationprobs_15$`cluster 4: 0.2038`)
 
 
-classificationprobs_15_l<-classificationprobs_15 %>% pivot_longer(cols =1:4,names_to = "Cluster", values_to = "Probability")
+#For ACS 2015 and mapK = 4
+classificationprobs_15<-res_acs15_10$classificationProbabilities.ecr
+# Add cluster classification based on maximum probability 
+maxProb<-apply(classificationprobs_15, 1, max)
+ClusterAssignment<-res_acs15_10$clusterMembershipPerMethod[,2]
 
-classificationprobs_15_l%>%  ggplot(aes(x=Cluster, y= Probability, fill=Cluster)) +
-  geom_boxplot() + labs(fill = "Cluster Assignment", y = "Classification Probability after ECR algorithm", x= "Census Tract Cluster Assignment")
+classificationprobs_15$ClusterAssignment<-ClusterAssignment
+classificationprobs_15$maxProb<-maxProb
+
+#Class probabilities
+# stats<-cbind(summary(res_acs10_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs10_10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+# tail(stats, mapK) %>% kable()
+
+
+#Prep Data for boxplot
+classificationprobs_15$CT<-row.names(classificationprobs_15) #I will add actual tracts later
+
+classificationprobs_15$ClusterAssignment<- factor(classificationprobs_15$ClusterAssignment, levels = 1:4, labels = c("cluster 1: 0.2956", "cluster 2: 0.2960", "cluster 3: 0.2044", "cluster 4: 0.2038"))
+
+datplot15<- classificationprobs_15 %>% select(CT,ClusterAssignment, maxProb)
+
+
+datplot15%>%  ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
+  geom_boxplot() +
+  labs(fill = "Cluster Assignment", y = "Classification Probability after ECR algorithm", x= "")
+
+dattable15<-datplot15 %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
+                    `Cluster Assignment` = ClusterAssignment) 
+
+table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, data= dattable15, overall = F)
 
 ```
 
