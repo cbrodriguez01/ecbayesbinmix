@@ -155,7 +155,7 @@ stats<-cbind(summary(res_acs10_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summ
 tail(stats, mapK) %>% kable()
 ```
 
-####  Age Distribution of the census tracts
+#### Age Distribution of the census tracts
 
 ```{r}
 #For ACS 2010 and mapK = 4
@@ -232,7 +232,7 @@ stats<-cbind(summary(res_acs15_10$parameters.ecr.mcmc)$statistics[,c(1,2)], summ
 tail(stats, mapK) %>% kable()
 ```
 
-####  Age Distribution of the census tracts
+#### Age Distribution of the census tracts
 
 ```{r}
 #For ACS 2015 and mapK = 4
@@ -254,21 +254,31 @@ dat15_clusters<- classificationprobs_15 %>% select(GEOID,ClusterAssignment, maxP
 
 #merge age dist with cluster informaiton-- these are proportions
 merged15<- merge(dat15_clusters, agedist15_wide, by= "GEOID")
-table1::table1(~ age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + age_median |ClusterAssignment, 
+merged15<-merged15 %>% mutate(cluster_new = case_when(
+        ClusterAssignment == "cluster 1" ~ 2,
+        ClusterAssignment == "cluster 2" ~ 1,
+        ClusterAssignment == "cluster 3" ~ 4,
+        ClusterAssignment == "cluster 4" ~ 3,))
+#table(merged15$ClusterAssignment, merged15$cluster_new)
+merged15$cluster_new<-factor(merged15$cluster_new, levels = 1:4, 
+                             labels = c("cluster 1", "cluster 2", "cluster 3", "cluster 4"))
+
+
+table1::table1(~ age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + age_median |cluster_new, 
                data= merged15, overall = F)
 ```
 
 #### How deterministic is the model?
 
 ```{r}
-merged15%>%  ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
+merged15%>%  ggplot(aes(x = cluster_new, y = maxProb, fill = cluster_new)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
        x= "")
 
 dattable15<-merged15 %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
-                    `Cluster Assignment` = ClusterAssignment) 
+                    `Cluster Assignment` = cluster_new) 
 
 table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
                data= dattable15, overall = F)
@@ -280,14 +290,14 @@ Through this assessment we can get an idea of cluster mobility or how census tra
 
 ```{r}
 #RENAME THEM TO MATCH-- using levels
-merged15<-merged15 %>% mutate(cluster_new = case_when(
-        ClusterAssignment == "cluster 1" ~ 2,
-        ClusterAssignment == "cluster 2" ~ 1,
-        ClusterAssignment == "cluster 3" ~ 4,
-        ClusterAssignment == "cluster 4" ~ 3,))
-#table(merged15$ClusterAssignment, merged15$cluster_new)
-merged15$cluster_new<-factor(merged15$cluster_new, levels = 1:4, 
-                             labels = c("cluster 1", "cluster 2", "cluster 3", "cluster 4"))
+# merged15<-merged15 %>% mutate(cluster_new = case_when(
+#         ClusterAssignment == "cluster 1" ~ 2,
+#         ClusterAssignment == "cluster 2" ~ 1,
+#         ClusterAssignment == "cluster 3" ~ 4,
+#         ClusterAssignment == "cluster 4" ~ 3,))
+# #table(merged15$ClusterAssignment, merged15$cluster_new)
+# merged15$cluster_new<-factor(merged15$cluster_new, levels = 1:4, 
+#                              labels = c("cluster 1", "cluster 2", "cluster 3", "cluster 4"))
 
 ACS10_clusters<-merged10$ClusterAssignment
 ACS15_clusters<-merged15$cluster_new
@@ -348,3 +358,7 @@ To further understand these shifts we will need to look at the cluster labels or
 -   **Cluster 4:** Higher success probabilities for owners, unemployment, lower educational levels, female household.
 
     -   ***Summarize this as possibly the "Low SES" category.***
+
+```{r}
+check<-readRDS("./ACSall_results.rds")
+```
