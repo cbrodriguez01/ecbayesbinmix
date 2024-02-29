@@ -4,6 +4,7 @@ library(foreach)
 library(label.switching)
 library(doParallel)
 library(coda)
+#Last edited: 02/28/24
 
 #Run models-- edited to change the parameter of the Dirichlet distribution to 1/Kmax (2/10/24)
 
@@ -38,7 +39,7 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid){
                           binaryData = dataset, 
                           outPrefix = out.path,
                           m = m,
-                          gamma = gamma)
+                          gamma = gamma, burn = 100)
   
   out.list<-list(res)
   names(out.list)<-c(paste0("res_", acsid,sep = "_",Kmax))
@@ -56,20 +57,20 @@ censusdata_bin <- readRDS("./censusdata_bin.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
 
-Kmaxes<-c(10,15,20)
+Kmaxes<-c(10,8)
 m<-500
 nChains<-4
+#02/28/24 added a burn in of 100 (technically 1000) and we changed gamma = 1/kmax
 #wd<-"/homes6/carmen/Other projects/"
 wd<-"/n/home03/crodriguezcabrera/BayesBinMix_Project/"
 acsid<- c("acs10","acs15", "acs19")
 
 
-
-set.seed(2012)
 res_all<-list()
 for (i in 1:length(datasets)){
   for (k in Kmaxes){
     gamma<-rep(1/k,k)
+    set.seed(2012)
     model.res<-run_models(dataset = datasets[[acsid[i]]], Kmax = k ,gamma=gamma, nChains= nChains, m= m, ClusterPrior, wd = wd, acsid = acsid[i])
     
     res_all<-append(res_all, model.res)
@@ -78,6 +79,6 @@ for (i in 1:length(datasets)){
 
 
 #Output will include 9 lists
-saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_results.rds")
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_results_withburnin.rds")
 
 

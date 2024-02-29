@@ -368,6 +368,8 @@ table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assig
 
 ### Concordance-discordance table
 
+ADD LABELS
+
 Through this assessment we can get an idea of cluster mobility or how census tracts changed over time.
 
 ```{r}
