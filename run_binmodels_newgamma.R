@@ -72,7 +72,7 @@ acsid<- c("acs10","acs15", "acs19")
 
 res_all<-list()
 for (i in 1:length(datasets)){
-    model.res<-run_models(dataset = datasets[[acsid[i]]], Kmax = k ,gamma=gamma, 
+    model.res<-run_models(dataset = datasets[[acsid[i]]], Kmax = Kmax,gamma=gamma, 
                           nChains= nChains, m= m, ClusterPrior, wd = wd, 
                           acsid = acsid[i], burnin= burnin)
     
