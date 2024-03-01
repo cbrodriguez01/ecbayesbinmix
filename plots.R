@@ -113,8 +113,11 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
   # Generate plot
   prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
     geom_col()  +
-    facet_wrap(~cluster, nrow = mapK) + scale_fill_manual(values = color_palette) + 
-    labs(title = fig_title, x= "",   y = "Probability",fill = "Neighborhood SES variables") +
+    facet_wrap(~cluster, nrow = mapK) + 
+    scale_fill_manual(values = color_palette) + 
+    labs(title = fig_title, x= "",
+         y = "Probability",
+         fill = "Neighborhood SES variables") +
     theme(text = element_text(size = 12),
           axis.text.x = element_text(size=6.8, angle=45, vjust = 0.75, hjust = 0.88), 
           axis.title.x = element_text(size = 8, color = "black", face = "bold"),
@@ -128,15 +131,20 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
 }
 
 
-plot_thetakj_group1<-function(prob_est_long,mapK, color_palette, fig_title){
+plot_thetakj_group_flipped<-function(prob_est_long,mapK, color_palette, fig_title){
   
-  scalediscrete<-c("Two People Per Room","Lack of complete Plumbing","No Vehicle", "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
-                   "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment", "White Collar Occupation")
+  #scalediscrete<-c("Two People Per Room","Lack of complete Plumbing","No Vehicle", "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
+   #                "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment", "White Collar Occupation")
+  
   # Generate plot
   prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
-    geom_col() + coord_flip() +
-    facet_wrap(~cluster, nrow = mapK) + scale_fill_manual(values = color_palette) + 
-    labs(title = fig_title, x= "",   y = "Probability",fill = "Neighborhood SES variables") +
+    geom_col() +
+    coord_flip() +
+    facet_wrap(~cluster, nrow = mapK) + 
+    scale_fill_manual(values = color_palette) + 
+    labs(title = fig_title, x= "",  
+         y = "Probability",
+         fill = "Neighborhood SES variables") +
     theme(text = element_text(size = 12),
           axis.text.x = element_text(size=8), 
           axis.title.x = element_text(size = 5, color = "black", face = "bold"),
