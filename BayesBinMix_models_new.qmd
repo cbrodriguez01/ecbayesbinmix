@@ -1,0 +1,54 @@
+---
+title: "BayesBinMix Census Data (New models)"
+author: "Carmen B. Rodriguez"
+format: html
+editor: visual
+---
+
+```{r}
+#| warning: false
+#| output: false
+#Load packages
+library(tidyverse)
+library(Hmisc)
+library(reshape2)
+library(ggplot2)
+library(psych)
+library(table1)
+library(tableone)
+library(Hmisc)
+library(BayesBinMix)
+library(foreach)
+library(label.switching)
+library(doParallel)
+library(coda)
+library(DescTools)
+library(MCMCvis)
+library(knitr)
+library(forcats)
+library(gmodels)
+```
+
+The Multivariate Bernoulli Mixture Model
+
+The dimensionality of the multivariate distribution is equal to $d = 14$.
+
+The following prior assumptions are imposed
+
+$$K \sim \text{Truncated Poisson}(\lambda = 1)$$
+
+$$p|K \sim \text{Dirichlet}(\gamma_1,..., \gamma_K)$$ We set $\gamma_1=...= \gamma_K =\gamma = 1/50$. We do this so that the prior distribution on the weight distribution of a mixture with $$K$$ components is chosen in such a way that a priori the number of clusters in the data is random and is allowed to be smaller than $$K$$ with high probability.<https://link.springer.com/article/10.1007/s11634-018-0329-y>
+
+$$\theta_{kj} \sim \text{Beta}(\alpha=1, \beta=1)$$
+
+```{r}
+#Load census data and results from latest model
+censusdata_bin <- readRDS("./censusdata_bin_rownames.rds")
+names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
+
+res_all <- readRDS("./")
+
+
+
+
+```
