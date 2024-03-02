@@ -14,14 +14,14 @@
 #Note that as alpha decreases so does the number of vector elements with much appreciable mass, thus inducing sparsity
 
 library(BayesBinMix)
-library(DescTools)
+#library(DescTools)
 library(tidyverse)
 #We are going to explore changes in the value of K for the ACS 2010
 censusdata_bin <- readRDS("./censusdata_bin.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 acs10<-as.matrix(censusdata_bin$acs5_2010_bin)
 Kmax<-c(10,20)
-alpha<- c(1, 1/(seq(20,60, by = 15)))
+alpha<- c(1, 1/(seq(20,60, by = 15)), 0.01)
 m<-1000
 burnin<-500
 nChains<-4
@@ -43,13 +43,15 @@ for (k in Kmax){
     
     #Collect Kmap and g
     Gammas<-c(Gammas, g)
-    Kmap<-c(Kmap,Mode(res$K.mcmc)[1])
+    #Kmap<-c(Kmap,Mode(res$K.mcmc)[1])
+    #Another way to extracting Kmap
+    Kmap<- c(Kmap,ncol(res$classificationProbabilities.ecr))
   }
 }
 
-Mat<-matrix(nrow = 8, ncol = 3)
+Mat<-matrix(nrow = 10, ncol = 3)
 colnames(Mat)<-c("Kmax", "Gamma", "Kmap")
-Mat[,1]<-c(rep(10,4), rep(20,4))
+Mat[,1]<-c(rep(10,5), rep(20,5))
 Mat[,2]<-Gammas
 Mat[,3]<-Kmap
 

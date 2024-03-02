@@ -3,9 +3,9 @@
 #SBATCH -c 5  
 #SBATCH -p shared 
 #SBATCH --mem=64000 
-#SBATCH -t 0-5:00:00 
-#SBATCH -o myoutput_sparsity_3.1_%j.out 
-#SBATCH -e myerrors_sparsity_3.1_%j.err  
+#SBATCH -t 0-6:00:00 
+#SBATCH -o myoutput_sparsity_3.2_%j.out 
+#SBATCH -e myerrors_sparsity_3.2_%j.err  
 #SBATCH --mail-type=END  
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu  
 
