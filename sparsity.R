@@ -62,4 +62,24 @@ plot<-Mat %>% as.data.frame()%>% ggplot(aes(x= Gamma, y = Kmap, color= as.factor
 
 save(Mat, plot, file = "test.RData")
 
-#load("test.RData")
+
+## Added on 3/3/24
+library(latex2exp)
+load("test.RData")
+ plot
+
+ dat<-Mat %>% as.data.frame() %>% filter(Gamma != 1)
+
+ dat%>% ggplot(aes(x= Gamma, y = Kmap, color= as.factor(Kmax))) +
+   geom_line() + 
+   geom_point() + 
+   labs(color = "Kmax", y = "Most Probable K (Kmap)", 
+        x = TeX("Gamma parameter of Dirichlet prior on \\pi")) +
+   scale_discrete_manual("Kmax")
+ 
+ 
+  
+ 
+
+
+
