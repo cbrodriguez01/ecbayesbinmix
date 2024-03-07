@@ -64,23 +64,23 @@
 
 
 ## Added on 3/3/24
-library(latex2exp)
-load("test.RData")
- plot
+#library(latex2exp)
+#load("test.RData")
+ #plot
 
- dat<-Mat %>% as.data.frame() %>% filter(Gamma != 1)
+ #dat<-Mat %>% as.data.frame() %>% filter(Gamma != 1)
 
- dat%>% ggplot(aes(x= Gamma, y = Kmap, color= as.factor(Kmax))) +
-   geom_line() + 
-   geom_point() + 
-   labs(color = "Kmax", y = "Most Probable K (Kmap)", 
-        x = TeX("Gamma parameter of Dirichlet prior on \\pi")) +
-   scale_discrete_manual("Kmax")
+ #dat%>% ggplot(aes(x= Gamma, y = Kmap, color= as.factor(Kmax))) +
+  # geom_line() + 
+   #geom_point() + 
+   #labs(color = "Kmax", y = "Most Probable K (Kmap)", 
+    #    x = TeX("Gamma parameter of Dirichlet prior on \\pi")) +
+   #scale_discrete_manual("Kmax")
  
  
 #Run without changing Gamma, just doing 5 iterations of the same model with Kmax = c(10,20,50) 
  #For each Kmax run 5 iterations of the same model ==> 15 models total
- 
+
  library(BayesBinMix)
  #library(DescTools)
  library(tidyverse)
@@ -89,7 +89,7 @@ load("test.RData")
  names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
  acs10<-as.matrix(censusdata_bin$acs5_2010_bin)
  
- Kmax<-c(10,20,50)
+# Kmax<-c(10,20,50)
  alpha<- 1/50
  m<-1000
  burnin<-500
@@ -99,11 +99,11 @@ load("test.RData")
  #wd_temp<-"/Users/carmenrodriguez/Desktop/temp/"
  
  Kmap<-c()
- for (k in Kmax){
+# for (k in Kmax){
    for (i in 1:5){
-     out.path<-paste0(wd, "acs10", sep= "_",k ,sep = "_","iter", i)
-     gammavec<-rep(alpha, k)
-     res<- coupledMetropolis(Kmax=k, nChains = nChains, 
+     out.path<-paste0(wd, "acs10", sep= "_","50" ,sep = "_","iter", i)
+     gammavec<-rep(alpha, 50)
+     res<- coupledMetropolis(Kmax=50, nChains = nChains, 
                              heats = heats,
                              binaryData = acs10, 
                              outPrefix = out.path,
@@ -115,14 +115,15 @@ load("test.RData")
      #Another way to extracting Kmap
      Kmap<- c(Kmap,ncol(res$classificationProbabilities.ecr))
    }
- }
- Mat<-matrix(nrow = length(Kmax)*5, ncol = 3)
- colnames(Mat)<-c("Kmax", "Iter", "Kmap")
- Mat[,1]<-c(rep(10,5), rep(20,5), rep(50,5))
- Mat[,2]<-c(rep(1:5,3))
- Mat[,3]<-Kmap
+ #}
+ #Mat<-matrix(nrow = length(Kmax)*5, ncol = 3)
+ #colnames(Mat)<-c("Kmax", "Iter", "Kmap")
+ #Mat[,1]<-c(rep(10,5), rep(20,5), rep(50,5))
+ #Mat[,2]<-c(rep(1:5,3))
+ #Mat[,3]<-Kmap
  
  
- save(Mat,Kmap, file = "test2.RData")
+ save(Kmap, file = "test2.RData")
 
+:wq
 
