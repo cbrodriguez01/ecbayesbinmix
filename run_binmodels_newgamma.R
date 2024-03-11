@@ -1,12 +1,11 @@
 #Running latest models
-#02/29/24
 #Packages required
 library(BayesBinMix)
 library(foreach)
 library(label.switching)
 library(doParallel)
 library(coda)
-#Last edited: 02/28/24
+#Last edited: 3/10/2024
 
 #Run models-- edited to change the parameter of the Dirichlet distribution to 1/Kmax (2/10/24)
 
@@ -59,16 +58,18 @@ censusdata_bin <- readRDS("./censusdata_bin.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
 
-Kmax<-10
-gamma<-rep(1/50,Kmax) #to induce sparsity
-m<-1000
+Kmax<-50
+gamma<-rep((1/Kmax),Kmax) #to induce sparsity
+#We want 15,0000 iterations and 5000 burn-in
+m<-1500 
 burnin<-500
 nChains<-4
-#02/28/24 added a burn in of 100 (technically 1000) and we changed gamma = 1/kmax
+
+#3/10/24 added a burn in of 500 (technically 5000) and we changed gamma = 1/kmax, and set Kmax = 50
 #wd<-"/homes6/carmen/Other projects/"
+
 wd<-"/n/home03/crodriguezcabrera/BayesBinMix_Project/"
 acsid<- c("acs10","acs15", "acs19")
-
 
 res_all<-list()
 for (i in 1:length(datasets)){
@@ -81,7 +82,7 @@ for (i in 1:length(datasets)){
 
 
 
-#Output will include 9 lists
-saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_results_withburnin_2.29.rds")
+#Output will include 3 lists of length 7
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_3.10.24.rds")
 
 
