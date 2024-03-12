@@ -86,7 +86,8 @@ plot_thetakj_indiv<-function(prob_est_long,mapK, color_palette, fig_title){
           axis.title.y = element_text(size = 8, color = "black", face = "bold"),
           legend.title = element_text(size = 8, color = "black", face = "bold"),
           legend.text = element_text(size = 6, color = "black"),
-          legend.position = "bottom")
+          legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5))
   
 }
 
@@ -102,7 +103,6 @@ plot_thetakj_indiv<-function(prob_est_long,mapK, color_palette, fig_title){
 #' Returns a `ggplot2` object displaying a probabilities of each ses var and cluster by NSES assigned group
 #' 
 #aes(fill = as.factor(NSES_group))
-
 
 
 plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
@@ -125,7 +125,8 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
           #axis.ticks = element_blank(),
           legend.title = element_text(size = 8, color = "black", face = "bold"),
           legend.text = element_text(size = 8, color = "black"),
-          legend.position = "right")
+          legend.position = "right",
+          plot.title = element_text(hjust = 0.5))
   
   
 }
@@ -152,8 +153,39 @@ plot_thetakj_group_flipped<-function(prob_est_long,mapK, color_palette, fig_titl
           #axis.ticks = element_blank(),
           legend.title = element_text(size = 8, color = "black", face = "bold"),
           legend.text = element_text(size = 8, color = "black"),
-          legend.position = "right")
+          legend.position = "right",
+          plot.title = element_text(hjust = 0.5))
   
   
 }
+
+
+
+#Make plot as a heatmap
+
+plot_thetakj_heatmap<-function(prob_est_long, fig_title){
+
+  prob_est_long %>% ggplot(aes(x = as.factor(cluster),y = NSES_VARS,fill = theta_kj)) +
+  geom_tile() + 
+  geom_text(aes(label = round(theta_kj,2)), color = "black", size = 2) +
+  xlab(label = "Cluster") + ggtitle(fig_title) +
+  scale_fill_viridis(name = "Probability") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_blank()) # Remove y-axis title
+
+}
+
+#Reordered
+plot_thetakj_heatmap_r<-function(prob_est_long, fig_title){
+  
+  prob_est_long %>% ggplot(aes(x = as.factor(cluster),y = reorder(NSES_VARS, theta_kj),fill = theta_kj)) +
+    geom_tile() + 
+    geom_text(aes(label = round(theta_kj,2)), color = "black", size = 2) +
+    xlab(label = "Cluster") + ggtitle(fig_title) +
+    scale_fill_viridis(name = "Probability") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.y = element_blank()) # Remove y-axis title
+  
+}
+
 
