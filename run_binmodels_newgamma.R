@@ -32,7 +32,7 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, bu
   
   #Part of function->outPrefix:The name of the produced outut folder. An error is thrown if the directory exists.Add date to fix this issue
   out.path<-paste0(wd, acsid, sep= "_",Sys.Date() ,sep = "_",Kmax)
-  #print(out.path)
+  #out.path<-paste0(wd, acsid, sep= "_","3.13.24" ,sep = "_",Kmax)
   
   # This produces a list and a folder in out.path
   res<- coupledMetropolis(Kmax=Kmax, nChains = nChains, 
@@ -58,10 +58,14 @@ censusdata_bin <- readRDS("./censusdata_bin.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
 
+#INCREASE ITERATIONS
 Kmax<-50
 gamma<-rep((1/Kmax),Kmax) #to induce sparsity
 #We want 15,0000 iterations and 5000 burn-in
-m<-1500 
+#INCREASE ITERATIONS AND BURN-IN-- HAVE NOT RUN YET AS OF 3/12/24
+#m<-2000 
+#burnin<-m/2
+m<-1500
 burnin<-500
 nChains<-4
 
@@ -83,6 +87,6 @@ for (i in 1:length(datasets)){
 
 
 #Output will include 3 lists of length 7
-saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_3.10.24.rds")
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_3.12.24.rds")
 
 

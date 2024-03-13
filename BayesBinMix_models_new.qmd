@@ -34,8 +34,11 @@ library(gmodels)
 ```{r}
 #Load census data and results from latest model
 censusdata_bin <- readRDS("./censusdata_bin_rownames.rds")
+censusdata<- load("./censusdata_updated.RData")
+agedist<-load("./census_age_dist.RData")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 
+#These models
 res_all<-readRDS("./ACSall_3.10.24.rds")
 res_acs10<-res_all$res_acs10_50
 res_acs15<-res_all$res_acs15_50
@@ -101,32 +104,19 @@ p_10_indiv
 p_10_group
 p_10_heatmap
 
-#to describe patterns
-#dat_10 %>% group_by(cluster) %>% arrange(desc(theta_kj),.by_group = T)
-
-# dat_10_1<-dat_10 %>%  mutate(hml= case_when(
-#                              theta_kj >=0.70 ~ 1,
-#                              theta_kj< 0.70 & theta_kj >=0.4 ~ 2,
-#                              theta_kj < 0.4 ~ 3,))
-# 
-# dat_10_1$hml <- factor(dat_10_1$hml, levels = 1:3, labels = c("High", "Med", "Low"))
-# 
-# 
-# out<-dat_10_1 %>%  group_by(cluster) %>% arrange(desc(theta_kj),.by_group = T) %>% select( cluster, NSES_VARS, theta_kj,hml)
-
-
 ```
 
 #### **Cluster mixing weights estimates**
 
 ```{r}
 #Class probabilities
-stats<-cbind(summary(res_acs10$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res_acs10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+stats<-cbind(summary(res_acs10$parameters.ecr.mcmc)$statistics[,c(1,2)], 
+             summary(res_acs10$parameters.ecr.mcmc)$quantiles[,c(1,5)])
 
-tail(stats, mapK) %>% kable()
+tail(round(stats, 2), mapK) %>% kable()
 ```
 
-#### Age Distribution of the census tracts
+#### Age and Race/Ethnicity Distribution of the census tracts by cluster assignment
 
 ```{r}
 #For ACS 2010 and mapK = 9
@@ -147,13 +137,13 @@ classificationprobs_10$ClusterAssignment<- factor(classificationprobs_10$Cluster
 
 dat10_clusters<- classificationprobs_10 %>% select(GEOID,ClusterAssignment, maxProb)
 
-agedist<-load("./census_age_dist.RData")
-#agedist<-load("/Users/carmenrodriguez/Desktop/Research Projects/Census Data/census_age_dist.RData")
+racedist_10<-acs5_2010_wide %>% select(GEOID, Hispanic_or_Latino_2010,NonHispanicWhite_2010, NonHispanicBlack_2010, NonHispanicAsian_2010, NH_two_or_more_races_2010)
 
-#merge age dist with cluster informaiton-- these are proportions
-merged10<- merge(dat10_clusters, agedist10_wide, by= "GEOID")
-table1::table1(~ age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + age_median |ClusterAssignment, data= merged10, overall = F)
-#We might be able to merge
+#merge age dist + race dist with cluster information-- these are proportions
+merged10<- merge(dat10_clusters, agedist10_wide, by = "GEOID")
+merged10<-merge(merged10, racedist_10, by = "GEOID")
+table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2010 + NonHispanicWhite_2010 + NonHispanicBlack_2010 + NonHispanicAsian_2010+ NH_two_or_more_races_2010  |ClusterAssignment, data= merged10, overall = F)
+
 ```
 
 #### Distribution of assignment probabilities to the most probable cluster
@@ -190,26 +180,11 @@ dat_15<-preparedat_fig(res_acs15,mapK,sesvars)
 p_15_indiv<-plot_thetakj_indiv(prob_est_long = dat_15, mapK,color_palette = pastel_palette1, fig_title)
 p_15_group<-plot_thetakj_group(prob_est_long = dat_15, mapK,color_palette = group_cols, fig_title)
 p_15_heatmap<- plot_thetakj_heatmap(prob_est_long = dat_15, fig_title)
-
+p_15_heatmap1<- plot_thetakj_heatmap_r(prob_est_long = dat_15, fig_title)
 #p_15_indiv
 p_15_group
 p_15_heatmap
-
-
-#to describe patterns
-dat_15 %>% group_by(cluster) %>% arrange(desc(theta_kj),.by_group = T)
-
-dat_15_1<-dat_15 %>%  mutate(hml= case_when(
-                             theta_kj >=0.70 ~ 1,
-                             theta_kj< 0.70 & theta_kj >=0.4 ~ 2,
-                             theta_kj < 0.4 ~ 3,))
-
-dat_15_1$hml <- factor(dat_15_1$hml, levels = 1:3, labels = c("High", "Med", "Low"))
-
-
-out1<-dat_15_1 %>%  group_by(cluster) %>% arrange(desc(theta_kj),.by_group = T) %>% select( cluster, NSES_VARS, theta_kj, hml)
-
-
+p_15_heatmap1
 ```
 
 #### **Cluster mixing weights estimates**
@@ -221,7 +196,7 @@ stats<-cbind(summary(res_acs15$parameters.ecr.mcmc)$statistics[,c(1,2)], summary
 tail(stats, mapK) %>% kable()
 ```
 
-#### Age Distribution of the census tracts
+#### Age and Race/Ethnicity Distribution of the census tracts by cluster assignment
 
 ```{r}
 #For ACS 2015 and mapK = 9
@@ -242,20 +217,13 @@ classificationprobs_15$ClusterAssignment<- factor(classificationprobs_15$Cluster
 
 dat15_clusters<- classificationprobs_15 %>% select(GEOID,ClusterAssignment, maxProb)
 
-#merge age dist with cluster informaiton-- these are proportions
-merged15<- merge(dat15_clusters, agedist15_wide, by= "GEOID")
-# merged15<-merged15 %>% mutate(cluster_new = case_when(
-#         ClusterAssignment == "cluster 1" ~ 2,
-#         ClusterAssignment == "cluster 2" ~ 1,
-#         ClusterAssignment == "cluster 3" ~ 4,
-#         ClusterAssignment == "cluster 4" ~ 3,))
-# #table(merged15$ClusterAssignment, merged15$cluster_new)
-# merged15$cluster_new<-factor(merged15$cluster_new, levels = 1:4, 
-#                              labels = c("cluster 1", "cluster 2", "cluster 3", "cluster 4"))
 
+racedist_15<-acs5_2015_wide %>% select(GEOID, Hispanic_or_Latino_2015,NonHispanicWhite_2015, NonHispanicBlack_2015, NonHispanicAsian_2015, NH_two_or_more_races_2015)
 
-table1::table1(~ age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + age_median |ClusterAssignment, 
-               data= merged15, overall = F)
+#merge age dist + race dist with cluster information-- these are proportions
+merged15<- merge(dat15_clusters, agedist15_wide, by = "GEOID")
+merged15<-merge(merged15, racedist_15, by = "GEOID")
+table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2015 + NonHispanicWhite_2015 + NonHispanicBlack_2015 + NonHispanicAsian_2015+ NH_two_or_more_races_2015  |ClusterAssignment, data= merged15, overall = F)
 ```
 
 #### Distribution of assignment probabilities to the most probable cluster
@@ -275,6 +243,19 @@ table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assig
 
 ```
 
+```{r}
+#Looking at clusters 1 and 2 in comparison to acs 2006-2010
+table(merged10$ClusterAssignment, merged15$ClusterAssignment)
+
+
+# cluster 2 cts were classified as cluster 4 and cluster 8 on the previous year
+#25013812902 (Census Tract 8129.02, Hampden County, Massachusetts) & 25021415102 (Census Tract 4151.02, Norfolk County, Massachusetts)
+
+merged10 %>% filter(GEOID %in% c("25013812902","25021415102"))
+
+
+```
+
 ### **Plots** and Patterns for ACS 2015-2019
 
 ```{r}
@@ -291,12 +272,13 @@ fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
 dat_19<-preparedat_fig(res_acs19,mapK,sesvars)
 p_19_indiv<-plot_thetakj_indiv(prob_est_long = dat_19, mapK,color_palette = pastel_palette1, fig_title)
 p_19_group<-plot_thetakj_group(prob_est_long = dat_19, mapK,color_palette = group_cols, fig_title)
-
-p_19_indiv
+p_19_heatmap<-plot_thetakj_heatmap(prob_est_long = dat_19, fig_title)
+p_19_heatmap1<-plot_thetakj_heatmap_r(prob_est_long = dat_19, fig_title)
+#p_19_indiv
 p_19_group
+p_19_heatmap
+p_19_heatmap1
 
-#to describe patterns
-#dat_19 %>% group_by(cluster) %>% arrange(theta_kj,.by_group = T)
 
 
 ```
@@ -310,7 +292,7 @@ stats<-cbind(summary(res_acs19$parameters.ecr.mcmc)$statistics[,c(1,2)], summary
 tail(stats, mapK) %>% kable()
 ```
 
-#### Age Distribution of the census tracts
+#### Age and Race/Ethnicity Distribution of the census tracts by cluster assignment
 
 ```{r}
 #For ACS 2015 and mapK = 4
@@ -325,25 +307,19 @@ classificationprobs_19$maxProb<-maxProb
 #Prep Data 
 classificationprobs_19$GEOID<-row.names(censusdata_bin$acs5_2019_bin)
 
-classificationprobs_19$ClusterAssignment<- factor(classificationprobs_19$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
+classificationprobs_19$ClusterAssignment<- factor(classificationprobs_19$ClusterAssignment, levels = 1:8, labels = paste0("cluster", 1:8, sep= " "))
 
 
 dat19_clusters<- classificationprobs_19 %>% select(GEOID,ClusterAssignment, maxProb)
 
-#merge age dist with cluster informaiton-- these are proportions
-merged19<- merge(dat19_clusters, agedist19_wide, by= "GEOID")
-# merged15<-merged15 %>% mutate(cluster_new = case_when(
-#         ClusterAssignment == "cluster 1" ~ 2,
-#         ClusterAssignment == "cluster 2" ~ 1,
-#         ClusterAssignment == "cluster 3" ~ 4,
-#         ClusterAssignment == "cluster 4" ~ 3,))
-# #table(merged15$ClusterAssignment, merged15$cluster_new)
-# merged15$cluster_new<-factor(merged15$cluster_new, levels = 1:4, 
-#                              labels = c("cluster 1", "cluster 2", "cluster 3", "cluster 4"))
 
+racedist_19<-acs5_2019_wide %>% select(GEOID, Hispanic_or_Latino_2019,NonHispanicWhite_2019, NonHispanicBlack_2019, NonHispanicAsian_2019, NH_two_or_more_races_2019)
 
-table1::table1(~ age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + age_median |ClusterAssignment, 
-               data= merged19, overall = F)
+#merge age dist + race dist with cluster information-- these are proportions
+merged19<- merge(dat19_clusters, agedist15_wide, by = "GEOID")
+merged19<-merge(merged19, racedist_19, by = "GEOID")
+
+table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2019 + NonHispanicWhite_2019 + NonHispanicBlack_2019 + NonHispanicAsian_2019 + NH_two_or_more_races_2019  |ClusterAssignment, data= merged19, overall = F)
 ```
 
 #### Distribution of assignment probabilities to the most probable cluster
@@ -360,5 +336,15 @@ dattable19<-merged19 %>% rename(`Average Assignment Probability (ECR Algorithm)`
 
 table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
                data= dattable19, overall = F)
+
+```
+
+```{r}
+#Looking at clusters 1 and 2 in comparison to acs 2006-2010
+table(merged10$ClusterAssignment, merged19$ClusterAssignment)
+
+table(merged15$ClusterAssignment, merged19$ClusterAssignment)
+
+
 
 ```

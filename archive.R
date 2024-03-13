@@ -167,3 +167,16 @@ prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj)) +
 
 
 
+
+#to describe patterns
+#dat_10 %>% group_by(cluster) %>% arrange(desc(theta_kj),.by_group = T)
+
+# dat_10_1<-dat_10 %>%  mutate(hml= case_when(
+#                              theta_kj >=0.70 ~ 1,
+#                              theta_kj< 0.70 & theta_kj >=0.4 ~ 2,
+#                              theta_kj < 0.4 ~ 3,))
+# 
+# dat_10_1$hml <- factor(dat_10_1$hml, levels = 1:3, labels = c("High", "Med", "Low"))
+# 
+# 
+# out<-dat_10_1 %>%  group_by(cluster) %>% arrange(desc(theta_kj),.by_group = T) %>% select( cluster, NSES_VARS, theta_kj,hml)
