@@ -36,6 +36,7 @@ library(gmodels)
 censusdata_bin <- readRDS("./censusdata_bin_rownames.rds")
 censusdata<- load("./censusdata_updated.RData")
 agedist<-load("./census_age_dist.RData")
+langdist<-load("./census_language_dist.RData")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 
 #These models
@@ -144,6 +145,29 @@ merged10<- merge(dat10_clusters, agedist10_wide, by = "GEOID")
 merged10<-merge(merged10, racedist_10, by = "GEOID")
 table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2010 + NonHispanicWhite_2010 + NonHispanicBlack_2010 + NonHispanicAsian_2010+ NH_two_or_more_races_2010  |ClusterAssignment, data= merged10, overall = F)
 
+#Distrubution of SES variables by cluster
+acs10bin<-censusdata_bin$acs5_2010_bin
+acs10bin$GEOID <- rownames(acs10bin)
+acs10bin<- acs10bin %>% mutate_if(is.numeric, as.factor)
+acs10bin$ClusterAssignment<-ClusterAssignment
+acs10bin$ClusterAssignment<- factor(acs10bin$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
+
+
+table1(~ Two_or_more_rooms_2010_P + Lackplumbing_2010 + medianincome_2010 + BachelorHigherP_2010 + BelowPovertyLineP_2010 +  Education9years_2010 +     Femalehousehold_2010_P + HighSchoolHigherP_2010 + No_vehicle_2010 +        OwnerOccupiedUnitP_2010 + RenterOccupiedUnitP_2010 + UnemployementP_2010 + white_collar_occupation_2010 + SNAP_2010_P |ClusterAssignment, data= acs10bin, overall = F)
+
+
+#Population 5 years and over
+#lang_home_EN_notwell: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English!!Speak English less than "very well"
+
+#lang_home_notEN: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English
+
+lang10<-langdist10_wide
+merged10<- merge(merged10,lang10,by = "GEOID")
+
+table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merged10, overall=F)
+
+###COMBINE INTO A SINGLE DATASET LATER
+
 ```
 
 #### Distribution of assignment probabilities to the most probable cluster
@@ -224,6 +248,28 @@ racedist_15<-acs5_2015_wide %>% select(GEOID, Hispanic_or_Latino_2015,NonHispani
 merged15<- merge(dat15_clusters, agedist15_wide, by = "GEOID")
 merged15<-merge(merged15, racedist_15, by = "GEOID")
 table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2015 + NonHispanicWhite_2015 + NonHispanicBlack_2015 + NonHispanicAsian_2015+ NH_two_or_more_races_2015  |ClusterAssignment, data= merged15, overall = F)
+
+
+#Distrubution of SES variables by cluster
+acs15bin<-censusdata_bin$acs5_2015_bin
+acs15bin$GEOID <- rownames(acs15bin)
+acs15bin<- acs15bin %>% mutate_if(is.numeric, as.factor)
+acs15bin$ClusterAssignment<-ClusterAssignment
+acs15bin$ClusterAssignment<- factor(acs15bin$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
+
+
+table1(~ Two_or_more_rooms_2015_P + Lackplumbing_2015 + medianincome_2015 + BachelorHigherP_2015 + BelowPovertyLineP_2015 +  Education9years_2015 +     Femalehousehold_2015_P + HighSchoolHigherP_2015 + No_vehicle_2015 +        OwnerOccupiedUnitP_2015 + RenterOccupiedUnitP_2015 + UnemployementP_2015 + white_collar_occupation_2015 + SNAP_2015_P |ClusterAssignment, data= acs15bin, overall = F)
+
+
+#Population 5 years and over
+#lang_home_EN_notwell: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English!!Speak English less than "very well"
+
+#lang_home_notEN: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English
+
+lang15<-langdist15_wide
+merged15<- merge(merged15,lang15,by = "GEOID")
+
+table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merged15, overall=F)
 ```
 
 #### Distribution of assignment probabilities to the most probable cluster
@@ -240,19 +286,6 @@ dattable15<-merged15 %>% rename(`Average Assignment Probability (ECR Algorithm)`
 
 table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
                data= dattable15, overall = F)
-
-```
-
-```{r}
-#Looking at clusters 1 and 2 in comparison to acs 2006-2010
-table(merged10$ClusterAssignment, merged15$ClusterAssignment)
-
-
-# cluster 2 cts were classified as cluster 4 and cluster 8 on the previous year
-#25013812902 (Census Tract 8129.02, Hampden County, Massachusetts) & 25021415102 (Census Tract 4151.02, Norfolk County, Massachusetts)
-
-merged10 %>% filter(GEOID %in% c("25013812902","25021415102"))
-
 
 ```
 
@@ -320,6 +353,31 @@ merged19<- merge(dat19_clusters, agedist15_wide, by = "GEOID")
 merged19<-merge(merged19, racedist_19, by = "GEOID")
 
 table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2019 + NonHispanicWhite_2019 + NonHispanicBlack_2019 + NonHispanicAsian_2019 + NH_two_or_more_races_2019  |ClusterAssignment, data= merged19, overall = F)
+
+
+#Distrubution of SES variables by cluster
+acs19bin<-censusdata_bin$acs5_2019_bin
+acs19bin$GEOID <- rownames(acs19bin)
+acs19bin<- acs19bin %>% mutate_if(is.numeric, as.factor)
+acs19bin$ClusterAssignment<-ClusterAssignment
+acs19bin$ClusterAssignment<- factor(acs19bin$ClusterAssignment, levels = 1:8, labels = paste0("cluster", 1:8, sep= " "))
+
+
+table1(~ Two_or_more_rooms_2019_P + Lackplumbing_2019 + medianincome_2019 + BachelorHigherP_2019 + BelowPovertyLineP_2019 +  Education9years_2019 +     Femalehousehold_2019_P + HighSchoolHigherP_2019 + No_vehicle_2019 +        OwnerOccupiedUnitP_2019 + RenterOccupiedUnitP_2019 + UnemployementP_2019 + white_collar_occupation_2019 + SNAP_2019_P |ClusterAssignment, data= acs19bin, overall = F)
+
+
+#Population 5 years and over
+#lang_home_EN_notwell: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English!!Speak English less than "very well"
+
+#lang_home_notEN: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English
+
+lang19<-langdist19_wide %>% select(-c(NAME))
+merged19<- merge(merged19,lang19,by = "GEOID")
+
+table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merged19, overall=F)
+
+
+
 ```
 
 #### Distribution of assignment probabilities to the most probable cluster
@@ -339,12 +397,26 @@ table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assig
 
 ```
 
+### Cross-tabs
+
 ```{r}
+
 #Looking at clusters 1 and 2 in comparison to acs 2006-2010
-table(merged10$ClusterAssignment, merged19$ClusterAssignment)
+table(acs10=merged10$ClusterAssignment, acs15=merged15$ClusterAssignment)
 
-table(merged15$ClusterAssignment, merged19$ClusterAssignment)
+# cluster 2 cts were classified as cluster 4 and cluster 8 on the previous year
+#25013812902 (Census Tract 8129.02, Hampden County, Massachusetts) & 25021415102 (Census Tract 4151.02, Norfolk County, Massachusetts)
+
+merged10 %>% filter(GEOID %in% c("25013812902","25021415102"))
+
+merged19 %>% filter(GEOID %in% c("25013812902","25021415102"))
 
 
+
+
+#Looking at clusters 1 and 2 in comparison to acs 2006-2010
+table(acs10=merged10$ClusterAssignment, acs19=merged19$ClusterAssignment)
+
+table(acs15= merged15$ClusterAssignment, acs19= merged19$ClusterAssignment)
 
 ```
