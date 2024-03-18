@@ -180,3 +180,40 @@ prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj)) +
 # 
 # 
 # out<-dat_10_1 %>%  group_by(cluster) %>% arrange(desc(theta_kj),.by_group = T) %>% select( cluster, NSES_VARS, theta_kj,hml)
+
+# options(tigris_use_cache = TRUE)
+temp<-get_acs(state = "MA", geography = "tract", 
+              variables = "B03002_001", year = 2015, geometry = TRUE)
+
+temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
+dat15map<-merged15 %>% select(GEOID,NAME, ClusterAssignment_new, probassign)
+
+#join datasets
+map15<- left_join(temp1, dat15map, by = c("GEOID", "NAME"))
+#map15 %>% ggplot(aes(fill = probassign, group= ClusterAssignment_new)) + 
+#  geom_sf(color = NA) + 
+#  coord_sf(crs = 6491, datum = NA) +
+#  scale_fill_viridis_c(option = "C",direction = 1) +
+#  labs(title = "Hispanic or Latino: South American groups by Census Tracts in MA",
+#       caption = "Data source: 2019 5-year ACS",
+#       fill = "Percent") + theme_minimal()
+
+map15<- map15 %>% mutate(clusters = as.numeric(ClusterAssignment_new))
+#map15$clusters<-as.factor(map15$clusters)
+
+plot(map15["ClusterAssignment_new"])
+plot(map15["clusters"])
+
+
++
+  #  scale_fill_viridis_c(option = "C",direction = 1) +
+  #  labs(title = "Hispanic or Latino: South American groups by Census Tracts in MA",
+  #       caption = "Data source: 2019 5-year ACS",
+  #       fill = "Percent") + theme_minimal()
+
+
+
+
+
+
+

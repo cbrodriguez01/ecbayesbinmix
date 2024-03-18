@@ -1,0 +1,516 @@
+---
+title: "EHR and census data merged"
+author: "Carmen Rodriguez"
+date: "2023-01-09"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(stringr)
+library(lubridate)
+library(dplyr)
+library(openxlsx)
+library(table1)
+library(tidyverse)
+library(tidycensus)
+library(reshape2)
+library(ggplot2)
+library(sf)
+library(tigris)
+library(crsuggest)
+`%!in%` <- Negate(`%in%`)
+```
+
+
+
+
+```{r}
+# Import datasets 
+
+
+##EHR DATA
+ehrdata<-readRDS("/Users/carmenrodriguez/Library/CloudStorage/OneDrive-HarvardUniversity/EC Data/R files/MCRdat_optimalcarevar.rds")
+str(ehrdata)
+table(ehrdata$race_eth)
+
+#unique census tracts
+u<-unique(ehrdata$census_tract) 
+#length(u)--1402 unique cts in this dataset
+
+#### CENSUS DATA
+load("./censusdata_updated.RData")
+
+#ADD NAME COLUMN TO ALL DATASETS
+NAME<- acs5_2015_long %>%  select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+NAME<- NAME %>% select(GEOID, NAME)
+
+acs5_2010_wide<- merge(acs5_2010_wide, NAME, by= "GEOID")
+acs5_2015_wide<- merge(acs5_2015_wide, NAME, by= "GEOID")
+acs5_2019_wide<- merge(acs5_2019_wide, NAME, by= "GEOID")
+
+
+acs_all1<-merge(acs5_2010_wide,acs5_2015_wide, by = c("GEOID"))
+acs_all<-merge(acs_all1, acs5_2019_wide, by = c("GEOID"))
+acs_all<-acs_all %>% select(-c("NAME.y", "NAME")) %>% rename( NAME = NAME.x)
+
+censusdat<-acs_all
+#Extract census tract from GEOID
+# tract = last 6 digits of the GEOID
+censusdat$census_tract<-str_sub(censusdat$GEOID,start=6, end = 11) 
+censusdat$countycode<-str_sub(censusdat$GEOID,start=3, end = 5)
+census_tract_acs<-as.data.frame(censusdat$census_tract)
+names(census_tract_acs)<- "census_tract"
+census_tract_acs<-census_tract_acs %>% mutate(indicator = ifelse(census_tract %in% u, 1, 0)) #check against EHR data
+table(census_tract_acs$indicator) #1: 1411, 0: 67
+#Same census tract but a different county
+censusdat[duplicated(censusdat$census_tract), ]
+CTS<-censusdat  %>% filter(census_tract %in% c("990000", "010500", "010600", "040100", "040200", "040300", "040600")) %>% select(GEOID, census_tract, countycode, NAME) %>% arrange(census_tract)
+
+### Census data by survey wave
+head(acs5_2010_wide)
+acs5_2010_wide$census_tract<-str_sub(acs5_2010_wide$GEOID,start=6, end = 11) 
+acs5_2010_wide$countycode<-str_sub(acs5_2010_wide$GEOID,start=3, end = 5)
+
+head(acs5_2015_wide)
+acs5_2015_wide$census_tract<-str_sub(acs5_2015_wide$GEOID,start=6, end = 11) 
+acs5_2015_wide$countycode<-str_sub(acs5_2015_wide$GEOID,start=3, end = 5)
+
+head(acs5_2019_wide)
+acs5_2019_wide$census_tract<-str_sub(acs5_2019_wide$GEOID,start=6, end = 11) 
+acs5_2019_wide$countycode<-str_sub(acs5_2019_wide$GEOID,start=3, end = 5)
+
+
+# In the EHR data I need to add county code for 94 participants that have these census tracts so that we can match them correctly- Briana requested this data:stephenson_county_codes.txt. See emails from July 20 
+
+county_codes<- read.table("/Users/carmenrodriguez/Library/CloudStorage/OneDrive-HarvardUniversity/EC Data/stephenson_county_codes.txt",header = T,colClasses = c("character","character","character", "character", "character"))
+
+county_codes<-county_codes %>% rename(Patient_ID_num1 = display_id)
+
+
+#Merge with EHR-- remember this file is how we link participants IDs
+ptids_crosswalks <- read_excel("/Users/carmenrodriguez/Library/CloudStorage/OneDrive-HarvardUniversity/EC Data/pt_id_crosswalk copy.xls") 
+
+ehrdata_wids<-merge(ptids_crosswalks, ehrdata , 
+                      by = "Patient_ID_Num")
+
+ehrdata_countyfips<-right_join(county_codes, ehrdata_wids, by = "Patient_ID_num1") %>% arrange(Patient_ID_Num)
+
+```
+
+```{r}
+# Split data by range of years of diagnosis to match census datasets
+ehrdata_countyfips <- ehrdata_countyfips %>% rename( countycode = county_at_dx)
+
+# 2010 ACS
+ehrdata_10<- ehrdata_countyfips %>% filter(yeardx <= 2010) 
+table(ehrdata_10$yeardx)
+# 2015 ACS
+ehrdata_15<- ehrdata_countyfips %>% filter(yeardx > 2010 & yeardx < 2015)
+table(ehrdata_15$yeardx)
+# 2019 ACS
+ehrdata_19<- ehrdata_countyfips %>% filter(yeardx >= 2015)
+table(ehrdata_19$yeardx)
+
+```
+
+
+```{r}
+#Merging datasets
+ehrcensus10<- left_join(ehrdata_10, acs5_2010_wide, by= "census_tract") #3787
+
+#Now we only keep the counties at diagnosis when the cts are duplicated
+table(ehrcensus10$countycode.x) # out of these 70, we only need to keep 34
+table(ehrcensus10$countycode.y)
+
+#ehrcensus10 %>% filter(!is.na(countycode.x)) %>% select(Patient_ID_Num, census_tract, countycode.x,countycode.y, NAME, race_eth, surgery_yn)
+
+#Rows to be removed
+rmv<- which(!(ehrcensus10$countycode.x == ehrcensus10$countycode.y))
+#final
+ehrcensus10<- ehrcensus10 %>% filter(row_number() %!in%  rmv)
+#length(unique(ehrcensus10$Patient_ID_Num))
+
+ehrcensus15<- left_join(ehrdata_15, acs5_2015_wide, by=  "census_tract") #3119
+#Now keep the counties at diagnosis
+table(ehrcensus15$countycode.x) # out of these 68, we only need to keep 34
+table(ehrcensus15$countycode.y)
+
+# ehrcensus15 %>% filter(!is.na(countycode.x)) %>% select(Patient_ID_Num, census_tract, countycode.x,countycode.y, NAME, optimal_care)
+# 
+# ehrcensus15 %>% filter(!(countycode.x == countycode.y))%>% select(Patient_ID_Num, census_tract, countycode.x,countycode.y, NAME)
+
+#Rows to be removed
+rmv<- which(!(ehrcensus15$countycode.x == ehrcensus15$countycode.y))
+#final
+ehrcensus15<- ehrcensus15 %>% filter(row_number() %!in%  rmv)
+
+
+ehrcensus19<- left_join(ehrdata_19, acs5_2019_wide, by=  "census_tract") #2412
+#Now keep the counties at diagnosis
+table(ehrcensus19$countycode.x) # out of these 36, we only need to keep 16
+table(ehrcensus19$countycode.y)
+
+ehrcensus19 %>% filter(!is.na(countycode.x)) %>% select(Patient_ID_Num, census_tract, countycode.x,countycode.y, NAME, optimal_care)
+
+ehrcensus19 %>% filter(!(countycode.x == countycode.y))%>% select(Patient_ID_Num, census_tract, countycode.x,countycode.y, NAME)
+
+#Rows to be removed
+rmv<- which(!(ehrcensus19$countycode.x == ehrcensus19$countycode.y))
+#final
+ehrcensus19<- ehrcensus19 %>% filter(row_number() %!in%  rmv)
+
+```
+
+```{r}
+### COMBINE DATA- STACK THEM
+## Need to rename census variables the same across all datasets
+names(ehrcensus10)
+
+ehrcensus10 <- ehrcensus10 %>% rename(
+        BachelorHigherP = BachelorHigherP_2010,
+        BelowPovertyLineP= BelowPovertyLineP_2010,
+        Education9years = Education9years_2010,
+        Femalehousehold =  Femalehousehold_2010_P,            
+        HighSchoolHigherP = HighSchoolHigherP_2010 ,      
+        Hispanic_or_Latino =  Hispanic_or_Latino_2010,       
+        Lackplumbing = Lackplumbing_2010,        
+        medianincome  = medianincome_2010 ,            
+        No_vehicle = No_vehicle_2010,             
+        NonHispanicAsian = NonHispanicAsian_2010,           
+        NonHispanicBlack = NonHispanicBlack_2010,           
+        NonHispanicWhite  = NonHispanicWhite_2010,          
+        OwnerOccupiedUnitP = OwnerOccupiedUnitP_2010,        
+        RenterOccupiedUnitP = RenterOccupiedUnitP_2010,    
+        Total_race = Total_race_2010,                
+        Two_or_more_rooms = Two_or_more_rooms_2010_P,         
+        UnemployementP= UnemployementP_2010,           
+        white_collar_occupation = white_collar_occupation_2010, 
+        SNAP= SNAP_2010_P,
+        NonHispanicWhiteP = NonHispanicWhite_2010,         
+        NonHispanicBlackP = NonHispanicBlack_2010,         
+        NonHispanicAsianP = NonHispanicAsian_2010,       
+        Hispanic_or_LatinoP= Hispanic_or_Latino_2010)
+
+names(ehrcensus10)
+
+ehrcensus15 <- ehrcensus15 %>% rename(
+        BachelorHigherP = BachelorHigherP_2015,
+        BelowPovertyLineP= BelowPovertyLineP_2015,
+        Education9years = Education9years_2015,
+        Femalehousehold =  Femalehousehold_2015_P,            
+        HighSchoolHigherP = HighSchoolHigherP_2015 ,      
+        Hispanic_or_Latino =  Hispanic_or_Latino_2015,       
+        Lackplumbing = Lackplumbing_2015,        
+        medianincome  = medianincome_2015 ,            
+        No_vehicle = No_vehicle_2015,             
+        NonHispanicAsian = NonHispanicAsian_2015,           
+        NonHispanicBlack = NonHispanicBlack_2015,           
+        NonHispanicWhite  = NonHispanicWhite_2015,          
+        OwnerOccupiedUnitP = OwnerOccupiedUnitP_2015,        
+        RenterOccupiedUnitP = RenterOccupiedUnitP_2015,    
+        Total_race = Total_race_2015,                
+        Two_or_more_rooms = Two_or_more_rooms_2015_P,         
+        UnemployementP= UnemployementP_2015,           
+        white_collar_occupation = white_collar_occupation_2015,   
+        SNAP= SNAP_2015_P,
+        NonHispanicWhiteP = NonHispanicWhite_2015,         
+        NonHispanicBlackP = NonHispanicBlack_2015,         
+        NonHispanicAsianP = NonHispanicAsian_2015,       
+        Hispanic_or_LatinoP= Hispanic_or_Latino_2015)
+
+names(ehrcensus15)
+
+
+ehrcensus19 <- ehrcensus19 %>% rename(
+        BachelorHigherP = BachelorHigherP_2019,
+        BelowPovertyLineP= BelowPovertyLineP_2019,
+        Education9years = Education9years_2019,
+        Femalehousehold =  Femalehousehold_2019_P,            
+        HighSchoolHigherP = HighSchoolHigherP_2019 ,      
+        Hispanic_or_Latino =  Hispanic_or_Latino_2019,       
+        Lackplumbing = Lackplumbing_2019,        
+        medianincome  = medianincome_2019 ,            
+        No_vehicle = No_vehicle_2019,             
+        NonHispanicAsian = NonHispanicAsian_2019,           
+        NonHispanicBlack = NonHispanicBlack_2019,           
+        NonHispanicWhite  = NonHispanicWhite_2019,          
+        OwnerOccupiedUnitP = OwnerOccupiedUnitP_2019,        
+        RenterOccupiedUnitP = RenterOccupiedUnitP_2019,    
+        Total_race = Total_race_2019,                
+        Two_or_more_rooms = Two_or_more_rooms_2019_P,         
+        UnemployementP= UnemployementP_2019,           
+        white_collar_occupation = white_collar_occupation_2019, 
+        SNAP= SNAP_2019_P,
+        NonHispanicWhiteP = NonHispanicWhite_2019,         
+        NonHispanicBlackP = NonHispanicBlack_2019,         
+        NonHispanicAsianP = NonHispanicAsian_2019,       
+        Hispanic_or_LatinoP= Hispanic_or_Latino_2019)
+
+names(ehrcensus19)
+ehrcensusdat<- bind_rows(ehrcensus10, ehrcensus15, ehrcensus19)
+names(ehrcensusdat)
+table(ehrcensusdat$optimal_care)
+
+# new<-c("Did not receive optimal care", "Received optimal care")
+# table(ehrcensusdat$optimal_care)
+# ehrcensusdat$optimal_care<-factor(ehrcensusdat$optimal_care, labels = new)
+```
+
+
+```{r}
+# Look at the distribution of optimal care by census variables
+## LABEL and TRY AND INTERPRET-- GO OVER THIS INTERPRETATION WITH BRIANA
+label(ehrcensusdat$HighSchoolHigherP) <- "Proportion with High School or higher education"
+label(ehrcensusdat$BachelorHigherP) <- "Proportion with Bachelor's or higher education"
+label(ehrcensusdat$Education9years) <- "Proportion with < High School education"
+label(ehrcensusdat$BelowPovertyLineP) <- "Proportion below  poverty level"
+label(ehrcensusdat$Femalehousehold)  <- " Proportion of single female householder among households with children younger than 18"
+label(ehrcensusdat$No_vehicle) <- "Proportion of households with no vehicle"
+label(ehrcensusdat$OwnerOccupiedUnitP) <- "Proportion of owner occupied units"
+label(ehrcensusdat$RenterOccupiedUnitP) <- "Proportion of renter occupied units"
+label(ehrcensusdat$Two_or_more_rooms) <- "Proportion of households with two or more ppr"
+label(ehrcensusdat$Lackplumbing) <- " Proportion of households with no complete plumbing"
+label(ehrcensusdat$UnemployementP) <- "Proportion of unemployment"
+label(ehrcensusdat$medianincome) <- " Median Household Income"
+label(ehrcensusdat$white_collar_occupation) <- "Proportion with white collar occupation"
+label(ehrcensusdat$NonHispanicWhiteP) <- "Proportion of  NH White"
+label(ehrcensusdat$NonHispanicBlackP) <- "Proportion of  NH Black"
+label(ehrcensusdat$NonHispanicAsianP) <- "Proportion of  NH Asian"
+label(ehrcensusdat$Hispanic_or_LatinoP) <- "Proportion of  Hispanic or Latino"
+label(ehrcensusdat$SNAP) <- "Proportion of households receiving SNAP/Food stamps benefits"
+
+table1(~  HighSchoolHigherP + BachelorHigherP + BelowPovertyLineP + Femalehousehold + No_vehicle +
+        OwnerOccupiedUnitP +RenterOccupiedUnitP + Two_or_more_rooms + UnemployementP + white_collar_occupation + NonHispanicWhiteP + Lackplumbing  + NonHispanicWhiteP + NonHispanicBlackP + NonHispanicAsianP + Hispanic_or_LatinoP   |optimal_care, data= ehrcensusdat, overall=c(right="Total"), render.continuous=c(.="Mean (SD)")) 
+
+#Make into a Bloxplot-- long format
+ehrcensusdat_long<- ehrcensusdat %>% select("GEOID", "NAME","census_tract", "optimal_care", "HighSchoolHigherP", "BachelorHigherP","BelowPovertyLineP","Femalehousehold","Lackplumbing", "No_vehicle","OwnerOccupiedUnitP", "RenterOccupiedUnitP", "Two_or_more_rooms","UnemployementP",      "white_collar_occupation", "NonHispanicWhiteP","NonHispanicBlackP","NonHispanicAsianP",              "Hispanic_or_LatinoP") %>% pivot_longer(cols = 5:19, names_to = "variable", values_to = "estimate")
+
+nhses_boxplot<-ehrcensusdat_long %>%  ggplot(aes(x= variable, y=estimate, fill= variable)) + 
+    geom_boxplot(outlier.size = 0.01) + stat_summary(fun.y="mean", shape = 13, size = 0.05) + facet_wrap( ~optimal_care)  +
+  ylab("")  + theme_classic() +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) + labs(fill = "Neighborhood Characteristic")
+
+```
+
+```{r}
+#Forest plot---to show distribution mean(95% CI)
+#similar to odds ratio--
+# color code them
+#4 and 8
+
+#Calculate mean and  confidence intervals by optimal care
+# ehr_new<-ehrcensusdat %>% select("census_tract", "optimal_care",  "HighSchoolHigherP", "BachelorHigherP","BelowPovertyLineP","Femalehousehold" ) 
+# 
+# ehr_new1<-ehr_new %>% group_by(optimal_care) %>% summarise(avg_HS= mean(HighSchoolHigherP, na.rm = TRUE),
+#                                                            sd_HS = sd(HighSchoolHigherP, na.rm = TRUE),
+#                                                           avg_Bach = mean(BachelorHigherP, na.rm = TRUE),
+#                                                           sd_Bach = sd(BachelorHigherP, na.rm = TRUE),
+#                                                          avg_Fem= mean(Femalehousehold, na.rm = TRUE),
+#                                                          sd_Fem = sd(Femalehousehold, na.rm = TRUE),
+#                                                          avg_pov = mean(BelowPovertyLineP, na.rm = TRUE),
+#                                                          sd_pov = sd(BelowPovertyLineP, na.rm = TRUE))
+#95% Confidence Intervals/ error for the mean 
+meancifunc<- function(var){
+  mu <- mean(var, na.rm = TRUE)
+  err<- qt(0.975,df=length(var)-1)*sd(var,na.rm = TRUE)/sqrt(length(var))
+  lower<- mu - err
+  upper<- mu + err
+  
+return(c(mu,lower, upper))
+}
+
+fem<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(Femalehousehold)[1],
+                                                 lower= meancifunc(Femalehousehold)[2],
+                                                 upper = meancifunc(Femalehousehold)[3])
+fem$label<- c(rep("Female Household",2))
+
+
+own<- ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(OwnerOccupiedUnitP)[1],
+                                                 lower= meancifunc(OwnerOccupiedUnitP)[2],
+                                                 upper = meancifunc(OwnerOccupiedUnitP)[3])
+own$label<- c(rep("Owner occupied units",2))
+
+
+rent<- ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(RenterOccupiedUnitP)[1],
+                                                 lower= meancifunc(RenterOccupiedUnitP)[2],
+                                                 upper = meancifunc(RenterOccupiedUnitP)[3])
+rent$label<- c(rep("Renter occupied units",2))
+
+
+
+HS<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(HighSchoolHigherP)[1],
+                                                 lower= meancifunc(HighSchoolHigherP)[2],
+                                                 upper = meancifunc(HighSchoolHigherP)[3])
+
+HS$label<-c(rep("High School Education or Higher",2))
+
+
+Bach<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(BachelorHigherP)[1],
+                                                 lower= meancifunc(BachelorHigherP)[2],
+                                                 upper = meancifunc(BachelorHigherP)[3])
+  
+Bach$label<-c(rep(" Bacherlor's Education or Higher",2))
+
+Pov<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(BelowPovertyLineP)[1],
+                                                 lower= meancifunc(BelowPovertyLineP)[2],
+                                                 upper = meancifunc(BelowPovertyLineP)[3])
+Pov$label <- c(rep("Below Poverty Line",2))
+
+
+Unemp<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(UnemployementP)[1],
+                                                 lower= meancifunc(UnemployementP)[2],
+                                                 upper = meancifunc(UnemployementP)[3])
+Unemp$label <- c(rep("Unemployment",2))
+
+
+wce<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(white_collar_occupation)[1],
+                                                 lower= meancifunc(white_collar_occupation)[2],
+                                                 upper = meancifunc(white_collar_occupation)[3])
+wce$label <- c(rep("White collar occupation",2))
+
+
+
+veh<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(No_vehicle)[1],
+                                                 lower= meancifunc(No_vehicle)[2],
+                                                 upper = meancifunc(No_vehicle)[3])
+veh$label <- c(rep("Household with no vehicle",2))
+
+
+nhw<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(NonHispanicWhiteP)[1],
+                                                 lower= meancifunc(NonHispanicWhiteP)[2],
+                                                 upper = meancifunc(NonHispanicWhiteP)[3])
+nhw$label <- c(rep("Non-Hispanic White",2))
+
+nhb<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(NonHispanicBlackP)[1],
+                                                 lower= meancifunc(NonHispanicBlackP)[2],
+                                                 upper = meancifunc(NonHispanicBlackP)[3])
+nhb$label <- c(rep("Non-Hispanic Black",2))
+
+nha<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(NonHispanicAsianP)[1],
+                                                 lower= meancifunc(NonHispanicAsianP)[2],
+                                                 upper = meancifunc(NonHispanicAsianP)[3])
+nha$label <- c(rep("Non-Hispanic Asian",2))
+
+
+hisp<-ehrcensusdat %>% group_by(optimal_care) %>% summarise(mu = meancifunc(Hispanic_or_LatinoP)[1],
+                                                 lower= meancifunc(Hispanic_or_LatinoP)[2],
+                                                 upper = meancifunc(Hispanic_or_LatinoP)[3])
+hisp$label <- c(rep("Hispanic or Latinx",2))
+
+
+
+#https://stackoverflow.com/questions/58657802/forest-plot-with-subgroups-in-ggplot2
+#https://www.r-bloggers.com/2022/09/forest-plot-in-r-quick-guide/#:~:text=Forest%20Plot%20in%20R%2C%20A,research%20into%20a%20single%20figure.
+#Combine all
+forestdat<- bind_rows(HS, Bach, Unemp,wce, own, rent,veh, fem)
+forestdat1<- bind_rows(nhw, nhb, nha,hisp)
+forestdat<-forestdat %>% rename(`Optimal Care Status` = optimal_care)
+forestdat1<-forestdat1 %>% rename(`Optimal Care Status` = optimal_care)          
+  
+#define colours for dots and bars
+dotCOLS = c("#a6d8f0","#f9b282")
+barCOLS = c("#008fd5","#de6b35")
+forest1<-forestdat %>% ggplot(aes(x = label, y = mu, ymin = lower, ymax = upper, col = `Optimal Care Status`, fill = `Optimal Care Status`)) + 
+  geom_linerange(size=5,position=position_dodge(width = 0.5)) +
+  geom_hline(yintercept=0, lty=2) +
+  geom_point(size=3, shape=21, colour="white", stroke = 0.5,position=position_dodge(width = 0.5)) +
+  scale_fill_manual(values=barCOLS)+
+  scale_color_manual(values=dotCOLS)+
+  scale_x_discrete(name="Neighborhood Level Characteristic") +
+  scale_y_continuous(name="Mean (95% CI)") +
+  coord_flip() +
+  #labs(fill = "Optimal Care Status") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 14), text = element_text(size = 14),legend.position = "bottom")
+
+
+forest2<-forestdat1 %>% ggplot(aes(x = label, y = mu, ymin = lower, ymax = upper, col = `Optimal Care Status`, fill = `Optimal Care Status`)) + 
+  geom_linerange(size=5,position=position_dodge(width = 0.5)) +
+  geom_hline(yintercept=0, lty=2) +
+  geom_point(size=3, shape=21, colour="white", stroke = 0.5,position=position_dodge(width = 0.5)) +
+  scale_fill_manual(values=barCOLS)+
+  scale_color_manual(values=dotCOLS)+
+  scale_x_discrete(name="Neighborhood Level Race/Ethnicity") +
+  scale_y_continuous(name="Mean (95% CI)") +
+  coord_flip() +
+  #labs(fill = "Optimal Care Status") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 12),text = element_text(size = 12))
+
+
+forest1
+forest2
+png("/Users/carmenrodriguez/Desktop/Research 2022/Presentations/Poster/forestplot1_rev.png", width = 800, height = 400)
+forest1
+dev.off()
+
+
+```
+
+```{r}
+##  group_by census tract and calculate proportion of optimal and proportional of not optimal care and then plot this -- merge this data with the tigris geographical data from tidycensus
+
+census_tract_optimal<- ehrcensusdat %>%  select(census_tract, GEOID, NAME, optimal_care) 
+#Convert to long-format and get proportion by GEOID
+
+census_tract_optimal_long<-census_tract_optimal %>% pivot_longer(cols = optimal_care, names_to = "variable", values_to = "Optimal Care Status")
+
+# census_tract_optimal_long<-census_tract_optimal_long %>% 
+#      group_by(GEOID) %>% mutate(n = n()) 
+
+census_tract_optimal_long_prop<-census_tract_optimal_long %>% 
+     group_by(GEOID,`Optimal Care Status`) %>% summarise(n= n()) %>% 
+    mutate(estimate = n/sum(n) * 100)
+
+# census_tract_notoptimal_prop<-census_tract_optimal_long %>% 
+#     filter(estimate == "Not optimal") %>% 
+#      group_by(GEOID) %>%  summarise(n = n()) %>%  mutate(`Not optimal` = n/sum(n) * 100)
+# 
+# 
+# census_tract_optimal_prop <-census_tract_optimal_prop %>% select("GEOID", "Optimal")
+
+census_tract_optimal_long_prop_f <-census_tract_optimal_long_prop %>% 
+  select("GEOID", "Optimal Care Status", "estimate")
+
+
+# Data for the maps
+options(tigris_use_cache = TRUE) 
+readRenviron("~/.Renviron") #run this to use  API key
+
+#Check API key
+Sys.getenv("CENSUS_API_KEY")#quick extraction to make the optimal care map
+acstigris<-get_acs(state = "MA", geography = "tract", 
+                  variables = "DP02_0066P", year = 2019, geometry = TRUE)
+
+
+acstigris<- acstigris %>% select("GEOID", "NAME", "geometry")
+
+#merge
+map_optimal<- left_join(census_tract_optimal_long_prop_f, acstigris, by = "GEOID")
+map_optimal1<-st_as_sf(map_optimal)
+map<-map_optimal1  %>% ggplot(aes(fill = estimate)) + 
+  facet_wrap(~ `Optimal Care Status`) +                            
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1)  +
+  labs(caption = "Data source: Massachusetts Cancer Registry ",
+       fill = "Percentage of PTs") + 
+  theme_minimal() + theme(axis.text = element_text(size = 10), text= element_text(size = 15), legend.position = "bottom")
+#plot.title = element_text(hjust = 0.5), 
+#png("/Users/carmenrodriguez/Desktop/Research 2022/Presentations/Poster/optimalcare_map.png", width = 800, height = 800)
+#map
+#dev.off()
+
+map
+#guides(colour = guide_colourbar(direction = "horizontal"))
+
+
+#plot.title = element_text(hjust = 0.5), 
+# png("/Users/carmenrodriguez/Desktop/Research 2022/Presentations/Poster/optimalcare_map2.png", width = 800, height = 800)
+# map
+# dev.off()
+
+```
+

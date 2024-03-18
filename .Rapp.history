@@ -1,1 +1,2 @@
 load("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/test.RData")
+load("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/ACS10_results.rds")

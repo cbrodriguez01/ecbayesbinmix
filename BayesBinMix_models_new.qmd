@@ -227,19 +227,56 @@ tail(stats, mapK) %>% kable()
 classificationprobs_15<-res_acs15$classificationProbabilities.ecr
 # Add cluster classification based on maximum probability 
 maxProb<-apply(classificationprobs_15, 1, max)
-ClusterAssignment<-res_acs15$clusterMembershipPerMethod[,2]
+#Find second highest probability
+second_highest<-function(vec){
+  vec1<-sort(vec, decreasing = T)
+ return(vec1[2])
+}
+second_highest_index<-function(vec){
+  s<-length(vec)
+  vec1<-order(vec)
+ return(vec1[s-1])
+}
 
-classificationprobs_15$ClusterAssignment<-ClusterAssignment
+maxProb2<-apply(classificationprobs_15, 1, second_highest)
+ClusterAssignment_new <-apply(classificationprobs_15, 1, second_highest_index)
+
+
+classificationprobs_15$ClusterAssignment_ecr<-res_acs15$clusterMembershipPerMethod[,2]
 classificationprobs_15$maxProb<-maxProb
+classificationprobs_15$maxProb2<-maxProb2
+classificationprobs_15$temp<-ClusterAssignment_new
+
+
+#2nd highest probs for cluster2
+classificationprobs_15<-classificationprobs_15 %>% mutate(ClusterAssignment_newd = ifelse(ClusterAssignment_ecr == 2,  temp,ClusterAssignment_ecr), probassign = ifelse( ClusterAssignment_ecr == 2,maxProb2,maxProb))
+
 
 #Prep Data 
 classificationprobs_15$GEOID<-row.names(censusdata_bin$acs5_2015_bin)
+#Re-label to be 8 clusters 
+classificationprobs_15<-classificationprobs_15 %>% mutate(ClusterAssignment_new = case_when(
+   ClusterAssignment_newd == 1~ 1,
+   ClusterAssignment_newd == 3~ 2,
+   ClusterAssignment_newd == 4~ 3,
+   ClusterAssignment_newd == 5~ 4,
+   ClusterAssignment_newd == 6~ 5,
+   ClusterAssignment_newd == 7~ 6,
+   ClusterAssignment_newd == 8 ~ 7,
+   ClusterAssignment_newd == 9 ~ 8,
+))
 
 
-classificationprobs_15$ClusterAssignment<- factor(classificationprobs_15$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
+table(classificationprobs_15$ClusterAssignment_ecr)
+table(classificationprobs_15$ClusterAssignment_newd)
+table(classificationprobs_15$ClusterAssignment_new)
+
+classificationprobs_15$ClusterAssignment_new<- 
+  factor(classificationprobs_15$ClusterAssignment_new, levels = 1:8, labels = paste0("cluster", 1:8, sep= " "))
 
 
-dat15_clusters<- classificationprobs_15 %>% select(GEOID,ClusterAssignment, maxProb)
+
+dat15_clusters<- classificationprobs_15 %>% select(GEOID,ClusterAssignment_new, maxProb, maxProb2, probassign)
 
 
 racedist_15<-acs5_2015_wide %>% select(GEOID, Hispanic_or_Latino_2015,NonHispanicWhite_2015, NonHispanicBlack_2015, NonHispanicAsian_2015, NH_two_or_more_races_2015)
@@ -247,15 +284,15 @@ racedist_15<-acs5_2015_wide %>% select(GEOID, Hispanic_or_Latino_2015,NonHispani
 #merge age dist + race dist with cluster information-- these are proportions
 merged15<- merge(dat15_clusters, agedist15_wide, by = "GEOID")
 merged15<-merge(merged15, racedist_15, by = "GEOID")
-table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2015 + NonHispanicWhite_2015 + NonHispanicBlack_2015 + NonHispanicAsian_2015+ NH_two_or_more_races_2015  |ClusterAssignment, data= merged15, overall = F)
+table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2015 + NonHispanicWhite_2015 + NonHispanicBlack_2015 + NonHispanicAsian_2015+ NH_two_or_more_races_2015  |ClusterAssignment_new, data= merged15, overall = F)
 
 
 #Distrubution of SES variables by cluster
 acs15bin<-censusdata_bin$acs5_2015_bin
 acs15bin$GEOID <- rownames(acs15bin)
 acs15bin<- acs15bin %>% mutate_if(is.numeric, as.factor)
-acs15bin$ClusterAssignment<-ClusterAssignment
-acs15bin$ClusterAssignment<- factor(acs15bin$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
+acs15bin$ClusterAssignment<-classificationprobs_15$ClusterAssignment_new
+#acs15bin$ClusterAssignment<- factor(acs15bin$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
 
 
 table1(~ Two_or_more_rooms_2015_P + Lackplumbing_2015 + medianincome_2015 + BachelorHigherP_2015 + BelowPovertyLineP_2015 +  Education9years_2015 +     Femalehousehold_2015_P + HighSchoolHigherP_2015 + No_vehicle_2015 +        OwnerOccupiedUnitP_2015 + RenterOccupiedUnitP_2015 + UnemployementP_2015 + white_collar_occupation_2015 + SNAP_2015_P |ClusterAssignment, data= acs15bin, overall = F)
@@ -275,14 +312,14 @@ table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merg
 #### Distribution of assignment probabilities to the most probable cluster
 
 ```{r}
-merged15 %>% ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
+merged15 %>% ggplot(aes(x = ClusterAssignment_new, y = probassign, fill = ClusterAssignment_new)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
        x= "")
 
-dattable15<-merged15 %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
-                    `Cluster Assignment` = ClusterAssignment) 
+dattable15<-merged15 %>% rename(`Average Assignment Probability (ECR Algorithm)` = probassign,
+                    `Cluster Assignment` = ClusterAssignment_new) 
 
 table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
                data= dattable15, overall = F)
@@ -328,39 +365,65 @@ tail(stats, mapK) %>% kable()
 #### Age and Race/Ethnicity Distribution of the census tracts by cluster assignment
 
 ```{r}
-#For ACS 2015 and mapK = 4
+#For ACS 2019 and mapK = 8
 classificationprobs_19<-res_acs19$classificationProbabilities.ecr
-# Add cluster classification based on maximum probability 
+# Add cluster classification based on maximum and 2nd highest probability 
 maxProb<-apply(classificationprobs_19, 1, max)
-ClusterAssignment<-res_acs19$clusterMembershipPerMethod[,2]
+maxProb2<-apply(classificationprobs_19, 1, second_highest)
+ClusterAssignment_new <-apply(classificationprobs_19, 1, second_highest_index)
 
-classificationprobs_19$ClusterAssignment<-ClusterAssignment
+
 classificationprobs_19$maxProb<-maxProb
+classificationprobs_19$maxProb2<-maxProb2
+classificationprobs_19$ClusterAssignment_ecr<-res_acs19$clusterMembershipPerMethod[,2]
+classificationprobs_19$temp<-ClusterAssignment_new 
+
+
+
+#2nd highest probs for cluster 5
+classificationprobs_19<-classificationprobs_19 %>% mutate(ClusterAssignment_newd= ifelse(ClusterAssignment_ecr == 5,  temp,ClusterAssignment_ecr), probassign = ifelse( ClusterAssignment_ecr == 5,maxProb2,maxProb))
+
 
 #Prep Data 
 classificationprobs_19$GEOID<-row.names(censusdata_bin$acs5_2019_bin)
 
-classificationprobs_19$ClusterAssignment<- factor(classificationprobs_19$ClusterAssignment, levels = 1:8, labels = paste0("cluster", 1:8, sep= " "))
+#Re-label to be 8 clusters 
+classificationprobs_19<-classificationprobs_19 %>% mutate(ClusterAssignment_new = case_when(
+   ClusterAssignment_newd == 1~ 1,
+   ClusterAssignment_newd == 2~ 2,
+   ClusterAssignment_newd == 3~ 3,
+   ClusterAssignment_newd == 4~ 4,
+   ClusterAssignment_newd == 6~ 5,
+   ClusterAssignment_newd == 7~ 6,
+   ClusterAssignment_newd == 8 ~ 7,
+))
+
+table(classificationprobs_19$ClusterAssignment_ecr)
+table(classificationprobs_19$ClusterAssignment_newd)
+table(classificationprobs_19$ClusterAssignment_new)
+
+classificationprobs_19$ClusterAssignment_new<- 
+  factor(classificationprobs_19$ClusterAssignment_new, levels = 1:7, labels = paste0("cluster", 1:7, sep= " "))
 
 
-dat19_clusters<- classificationprobs_19 %>% select(GEOID,ClusterAssignment, maxProb)
+dat19_clusters<- classificationprobs_19 %>% select(GEOID,ClusterAssignment_new, probassign)
 
 
 racedist_19<-acs5_2019_wide %>% select(GEOID, Hispanic_or_Latino_2019,NonHispanicWhite_2019, NonHispanicBlack_2019, NonHispanicAsian_2019, NH_two_or_more_races_2019)
 
 #merge age dist + race dist with cluster information-- these are proportions
-merged19<- merge(dat19_clusters, agedist15_wide, by = "GEOID")
+merged19<- merge(dat19_clusters, agedist19_wide, by = "GEOID")
 merged19<-merge(merged19, racedist_19, by = "GEOID")
 
-table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2019 + NonHispanicWhite_2019 + NonHispanicBlack_2019 + NonHispanicAsian_2019 + NH_two_or_more_races_2019  |ClusterAssignment, data= merged19, overall = F)
+table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + age_55_59 + age_60_64 + age_65_74 + age_75_84 + age_85_more + Hispanic_or_Latino_2019 + NonHispanicWhite_2019 + NonHispanicBlack_2019 + NonHispanicAsian_2019 + NH_two_or_more_races_2019  |ClusterAssignment_new, data= merged19, overall = F)
 
 
 #Distrubution of SES variables by cluster
 acs19bin<-censusdata_bin$acs5_2019_bin
 acs19bin$GEOID <- rownames(acs19bin)
 acs19bin<- acs19bin %>% mutate_if(is.numeric, as.factor)
-acs19bin$ClusterAssignment<-ClusterAssignment
-acs19bin$ClusterAssignment<- factor(acs19bin$ClusterAssignment, levels = 1:8, labels = paste0("cluster", 1:8, sep= " "))
+acs19bin$ClusterAssignment<-merged19$ClusterAssignment_new
+
 
 
 table1(~ Two_or_more_rooms_2019_P + Lackplumbing_2019 + medianincome_2019 + BachelorHigherP_2019 + BelowPovertyLineP_2019 +  Education9years_2019 +     Femalehousehold_2019_P + HighSchoolHigherP_2019 + No_vehicle_2019 +        OwnerOccupiedUnitP_2019 + RenterOccupiedUnitP_2019 + UnemployementP_2019 + white_collar_occupation_2019 + SNAP_2019_P |ClusterAssignment, data= acs19bin, overall = F)
@@ -374,7 +437,7 @@ table1(~ Two_or_more_rooms_2019_P + Lackplumbing_2019 + medianincome_2019 + Bach
 lang19<-langdist19_wide %>% select(-c(NAME))
 merged19<- merge(merged19,lang19,by = "GEOID")
 
-table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merged19, overall=F)
+table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment_new, data = merged19, overall=F)
 
 
 
@@ -383,14 +446,14 @@ table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merg
 #### Distribution of assignment probabilities to the most probable cluster
 
 ```{r}
-merged19%>%  ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
+merged19%>%  ggplot(aes(x = ClusterAssignment_new, y = probassign, fill = ClusterAssignment_new)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
        x= "")
 
-dattable19<-merged19 %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
-                    `Cluster Assignment` = ClusterAssignment) 
+dattable19<-merged19 %>% rename(`Average Assignment Probability (ECR Algorithm)` = probassign,
+                    `Cluster Assignment` = ClusterAssignment_new) 
 
 table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
                data= dattable19, overall = F)
@@ -420,3 +483,144 @@ table(acs10=merged10$ClusterAssignment, acs19=merged19$ClusterAssignment)
 table(acs15= merged15$ClusterAssignment, acs19= merged19$ClusterAssignment)
 
 ```
+
+### MAPS
+
+```{r}
+library(tidycensus)
+library(sf)
+library(tmap)
+library(RColorBrewer)
+library(cartogram)
+library(geodaData)
+#https://geodacenter.github.io/workbook/3a_mapping/lab3a.html#mapping-categorical-variables
+#https://spatialanalysis.github.io/handsonspatialdata/basic-mapping.html#introduction-4
+#https://stackoverflow.com/questions/73990261/unable-to-plot-the-census-tracts-using-tmap
+#https://ggplot2.tidyverse.org/reference/ggsf.html
+#https://r-spatial.org/r/2017/03/19/invalid.html#empty-geometries
+options(tigris_use_cache = TRUE)
+temp<-get_acs(state = "MA", geography = "tract", 
+                   variables = "B03002_001", year = 2010, geometry = TRUE, cache_table = TRUE)
+
+temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
+dat10map<-merged10 %>% select(GEOID,NAME.x, ClusterAssignment, maxProb) %>% rename(NAME = NAME.x)
+
+#join datasets
+map10<- merge(temp1, dat10map, by = "GEOID")
+map10<-map10 %>%  select(GEOID, NAME.x, ClusterAssignment, maxProb, geometry) %>% rename(NAME = NAME.x)
+
+# tm_shape(st_make_valid(map10)) + 
+#   tm_polygons(col = "maxProb",style = "quantile",
+#           n = 9, palette= "Set1",
+#           title = "2006-2010 MA Census") + 
+#   tm_layout(title = "",
+#             frame = FALSE,
+#             legend.outside = TRUE)
+
+map10<- map10 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment))
+map10$`Probabilistic Cluster Assingment`<-as.factor(map10$`Probabilistic Cluster Assingment`)
+
+tm_shape(st_make_valid(map10)) +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
+  tm_borders() +
+  tm_layout(title = "2006-2010 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
+
+
+```
+
+```{r}
+temp<-get_acs(state = "MA", geography = "tract", 
+                   variables = "DP05_0065", year = 2015, geometry = TRUE, cache_table = TRUE)
+
+temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
+dat15map<-merged15 %>% select(GEOID,NAME.x, ClusterAssignment_new, probassign) %>% rename(NAME = NAME.x)
+
+#join datasets
+map15<- merge(temp1, dat15map, by = "GEOID")
+map15<-map15 %>%  select(GEOID, NAME.x, ClusterAssignment_new, probassign, geometry) %>% rename(NAME = NAME.x)
+
+# tm_shape(st_make_valid(map15)) + 
+#   tm_polygons(col = "probassign",style = "quantile",
+#           n = 9, palette= "Set1",
+#           title = "2011-2015 MA Census") + 
+#   tm_layout(title = "",
+#             frame = FALSE,
+#             legend.outside = TRUE)
+
+map15<- map15 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment_new))
+map15$`Probabilistic Cluster Assingment`<-as.factor(map15$`Probabilistic Cluster Assingment`)
+
+
+tm_shape(st_make_valid(map15)) +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
+  tm_borders() +
+  tm_layout(title = "2011-2015 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
+```
+
+```{r}
+temp<-get_acs(state = "MA", geography = "tract", 
+                   variables = "B03002_001", year = 2019, geometry = TRUE, cache_table = TRUE)
+
+temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
+dat19map<-merged19 %>% select(GEOID,NAME, ClusterAssignment_new, probassign) 
+
+#join datasets
+map19<- merge(temp1, dat19map, by = "GEOID")
+map19<-map19 %>%  select(GEOID, NAME.x, ClusterAssignment_new, probassign, geometry) %>% rename(NAME = NAME.x)
+
+# tm_shape(st_make_valid(map19)) + 
+#   tm_polygons(col = "probassign",style = "quantile",
+#           n = 7, palette= "Set1",
+#           title = "2015-2019 MA Census") + 
+#   tm_layout(title = "",
+#             frame = FALSE,
+#             legend.outside = TRUE)
+
+map19<- map19 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment_new))
+map19$`Probabilistic Cluster Assingment`<-as.factor(map19$`Probabilistic Cluster Assingment`)
+
+tm_shape(st_make_valid(map19)) +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
+  tm_borders() +
+  tm_layout(title = "2015-2019 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
+
+```
+
+### Export
+
+```{r}
+#3 datasets with cluster assingment, prob of assingment
+dat10<-map10 %>% select(GEOID, NAME, ClusterAssignment, maxProb)
+dat10$cluster_color<-as.numeric(dat10$ClusterAssignment)
+dat10$cluster_color<- factor(dat10$cluster_color,levels = 1:9, labels= c("red", "blue",
+ "green","purple","orange","yellow", "brown","pink","grey"))
+
+table(dat10$cluster_color)
+table(dat10$ClusterAssignment)
+
+
+dat15<-map15 %>% select(GEOID, NAME, ClusterAssignment_new, probassign)
+dat15$cluster_color<-as.numeric(dat15$ClusterAssignment_new)
+dat15$cluster_color<- factor(dat15$cluster_color,levels = 1:8, labels= c("red", "blue",
+ "green","purple","orange","yellow", "brown","pink"))
+
+table(dat15$cluster_color)
+table(dat15$ClusterAssignment_new)
+
+
+
+dat19<-map19 %>% select(GEOID, NAME, ClusterAssignment_new, probassign)
+dat19$cluster_color<-as.numeric(dat19$ClusterAssignment_new)
+dat19$cluster_color<- factor(dat19$cluster_color,levels = 1:7, labels= c("red", "blue",
+ "green","purple","orange","yellow", "brown"))
+
+table(dat19$cluster_color)
+table(dat19$ClusterAssignment)
+
+#save data
+save(dat10, dat15, dat19, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/bayesbinmix_clustered_tracts.RData")
+
+
+```
+
+### 
