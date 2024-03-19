@@ -460,30 +460,6 @@ table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assig
 
 ```
 
-### Cross-tabs
-
-```{r}
-
-#Looking at clusters 1 and 2 in comparison to acs 2006-2010
-table(acs10=merged10$ClusterAssignment, acs15=merged15$ClusterAssignment)
-
-# cluster 2 cts were classified as cluster 4 and cluster 8 on the previous year
-#25013812902 (Census Tract 8129.02, Hampden County, Massachusetts) & 25021415102 (Census Tract 4151.02, Norfolk County, Massachusetts)
-
-merged10 %>% filter(GEOID %in% c("25013812902","25021415102"))
-
-merged19 %>% filter(GEOID %in% c("25013812902","25021415102"))
-
-
-
-
-#Looking at clusters 1 and 2 in comparison to acs 2006-2010
-table(acs10=merged10$ClusterAssignment, acs19=merged19$ClusterAssignment)
-
-table(acs15= merged15$ClusterAssignment, acs19= merged19$ClusterAssignment)
-
-```
-
 ### MAPS
 
 ```{r}
@@ -586,8 +562,6 @@ tm_shape(st_make_valid(map19)) +
 
 ```
 
-### Export
-
 ```{r}
 #3 datasets with cluster assingment, prob of assingment
 dat10<-map10 %>% select(GEOID, NAME, ClusterAssignment, maxProb)
@@ -608,7 +582,6 @@ table(dat15$cluster_color)
 table(dat15$ClusterAssignment_new)
 
 
-
 dat19<-map19 %>% select(GEOID, NAME, ClusterAssignment_new, probassign)
 dat19$cluster_color<-as.numeric(dat19$ClusterAssignment_new)
 dat19$cluster_color<- factor(dat19$cluster_color,levels = 1:7, labels= c("red", "blue",
@@ -617,10 +590,42 @@ dat19$cluster_color<- factor(dat19$cluster_color,levels = 1:7, labels= c("red", 
 table(dat19$cluster_color)
 table(dat19$ClusterAssignment)
 
-#save data
-save(dat10, dat15, dat19, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/bayesbinmix_clustered_tracts.RData")
 
 
 ```
 
-### 
+### Cross-tabs
+
+```{r}
+
+#Looking at clusters 1 and 2 in comparison to acs 2006-2010
+#table(acs10=merged10$ClusterAssignment, acs15=merged15$ClusterAssignment)
+
+# cluster 2 cts were classified as cluster 4 and cluster 8 on the previous year
+#25013812902 (Census Tract 8129.02, Hampden County, Massachusetts) & 25021415102 (Census Tract 4151.02, Norfolk County, Massachusetts)
+
+#merged10 %>% filter(GEOID %in% c("25013812902","25021415102"))
+
+#merged19 %>% filter(GEOID %in% c("25013812902","25021415102"))
+
+#Looking at clusters 1 and 2 in comparison to acs 2006-2010
+#table(acs10=merged10$ClusterAssignment, acs19=merged19$ClusterAssignment)
+
+#table(acs15= merged15$ClusterAssignment, acs19= merged19$ClusterAssignment)
+
+load("./bayesbinmix_clustered_tracts.RData")
+
+table(dat10$cluster_color, dat15$cluster_color)
+
+
+
+
+```
+
+### Export
+
+```{r}
+#save data
+save(dat10, dat15, dat19, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/bayesbinmix_clustered_tracts.RData")
+
+```

@@ -313,7 +313,9 @@ CrossTable(ehrcensus19$facility_docspecialty1, ehrcensus19$ClusterAssignment_new
 CrossTable(ehrcensus19$optimal_care, ehrcensus19$ClusterAssignment_new, prop.c = F, prop.t = F, chisq = T, digits = 3, expected = F)
 
 
-#-----LOGISTIC REGRESSION MODELS----
+#--------LOGISTIC REGRESSION MODELS BY SURVEY WAVE----------
+
+#####------ 2006-2010-----
 #We will model the probability of not receiving optimal care
 #I want cluster 4 to be reference
 ehrcensus10$ClusterAssignmentq <- relevel(ehrcensus10$ClusterAssignment , ref= 4)
@@ -367,14 +369,118 @@ pred.labels <-c(paste0("NSES:Cluster", sep= " ", 1:9),"YearDx:2006","YearDx:2007
             
 pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1:3, 5:9)),"YearDx:2007", "YearDx:2008", "YearDx:2009","YearDx:2010",
                 "NHB", "Hispanic", "Other","Age: 50-64", "Age:65+","Insurance:Medicare","Insurance:Public", "Insurance: Other", "Insurance:not insured",
-                 "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Teaching", "Facility: Unknown","Size:Medium",
+                 "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Unknown","Size:Medium",
                 "Size: Large", "Doc: Hematology", "Doc: Gyno", "Doc:Oncology", "Doc: Rad", "Doc:missing", "Doc:other", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
 
-tab_model(mod1, mod2, mod3, mod4, mod5,  p.style = "stars", pred.labels =  pred.labels, dv.labels = paste0("Model", sep=" ", 1:5),
+tab_model(mod1, mod2, mod3, mod4, mod5,  p.style = "stars", pred.labels =  pred.labels2, dv.labels = paste0("Model", sep=" ", 1:5),
           string.pred = "Coeffcient",
           string.ci = "95% CI", show.intercept = F)
 
 
 
+#####------ 2011-2015-----
+
+ehrcensus15$ClusterAssignmentq <- relevel(ehrcensus15$ClusterAssignment_new , ref= 2)
+ehrcensus15$notoptimal<- ifelse(ehrcensus15$optimal_care == "Not optimal", 1, 0)
+
+#Unadjusted
+mod1_2<-glm(notoptimal ~ ClusterAssignmentq,family=binomial(link='logit'),data= ehrcensus15)
+##The odds of not receiving optimal care are 0.63 lower
+
+table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
+         RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
+         FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
+         facility_docspecialty1 + ClusterAssignment_new| optimal_care, data= ehrcensus15, overall=F, extra.col=list(`P-value`=pvalue))
+
+
+
+#Adjust for socio-demographic characteristics
+#Recode- race/eth
+ehrcensus15<- ehrcensus15 %>% mutate( race_eth_recode = case_when(
+  race_eth %in% c("Non-Hispanic Asian", "Other", "Missing/unknown") ~ 4,
+  race_eth == "Non-Hispanic White" ~ 1,
+  race_eth == "Non-Hispanic Black" ~ 2,
+  race_eth == "Hispanic" ~ 3,
+))
+
+ehrcensus15$race_eth_recode<- factor(ehrcensus15$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
+
+
+mod2_2<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus15)
+summary(mod2_2)
+#Facility information 
+mod3_2<-glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus15)
+summary(mod3_2)
+#Adjust for  tumor info
+mod4_2<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus15)
+summary(mod4_2)
+
+#Full model
+mod5_2<- glm(notoptimal ~ ClusterAssignmentq + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
+           + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus15)
+summary(mod5_2)
+
+pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1, 3:8)),"YearDx:2012", "YearDx:2013", "YearDx:2014",
+                "NHB", "Hispanic", "Other","Age: 50-64", "Age:65+","Insurance:Medicare","Insurance:Public", "Insurance: Other", "Insurance:not insured",
+                "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Unknown","Size:Medium",
+                "Size: Large", "Doc: Hematology", "Doc: Gyno", "Doc:Oncology", "Doc: Rad", "Doc:missing", "Doc:other", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
+
+tab_model(mod1_2, mod2_2, mod3_2, mod4_2, mod5_2,  p.style = "stars", pred.labels =  pred.labels2, dv.labels = paste0("Model", sep=" ", 1:5),
+          string.pred = "Coeffcient",
+          string.ci = "95% CI", show.intercept = F)
+
+
+
+
+#####------ 2015-2019-----
+
+ehrcensus19$ClusterAssignmentq <- relevel(ehrcensus19$ClusterAssignment_new , ref= 4)
+ehrcensus19$notoptimal<- ifelse(ehrcensus19$optimal_care == "Not optimal", 1, 0)
+
+#Unadjusted
+mod1_3<-glm(notoptimal ~ ClusterAssignmentq,family=binomial(link='logit'),data= ehrcensus19)
+##The odds of not receiving optimal care are 0.63 lower
+
+table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
+         RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
+         FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
+         facility_docspecialty1 + ClusterAssignment_new| optimal_care, data= ehrcensus19, overall=F, extra.col=list(`P-value`=pvalue))
+
+
+
+#Adjust for socio-demographic characteristics
+#Recode- race/eth
+ehrcensus19<- ehrcensus19 %>% mutate( race_eth_recode = case_when(
+  race_eth %in% c("Non-Hispanic Asian", "Other", "Missing/unknown") ~ 4,
+  race_eth == "Non-Hispanic White" ~ 1,
+  race_eth == "Non-Hispanic Black" ~ 2,
+  race_eth == "Hispanic" ~ 3,
+))
+
+ehrcensus19$race_eth_recode<- factor(ehrcensus19$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
+
+
+mod2_3<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus19)
+summary(mod2_3)
+#Facility information 
+mod3_3<-glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus19)
+summary(mod3_3)
+#Adjust for  tumor info
+mod4_3<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus19)
+summary(mod4_3)
+
+#Full model
+mod5_3<- glm(notoptimal ~ ClusterAssignmentq + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
+             + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus19)
+summary(mod5_3)
+
+pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1:3, 5:7)),"YearDx:2016", "YearDx:2017",
+                "NHB", "Hispanic", "Other","Age: 50-64", "Age:65+","Insurance:Medicare","Insurance:Public", "Insurance: Other", "Insurance:not insured",
+                "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Unknown","Size:Medium",
+                "Size: Large", "Doc: Hematology", "Doc: Gyno", "Doc:Oncology", "Doc: Rad", "Doc:missing", "Doc:other", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
+
+tab_model(mod1_3, mod2_3, mod3_3, mod4_3, mod5_3,  p.style = "stars", pred.labels =  pred.labels2, dv.labels = paste0("Model", sep=" ", 1:5),
+          string.pred = "Coeffcient",
+          string.ci = "95% CI", show.intercept = F)
 
 
