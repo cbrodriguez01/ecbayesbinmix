@@ -87,7 +87,8 @@ pastel_palette1 <- generate_pastel_colors(14)
 #Kmax = 50
 mapK<-Mode(res_acs10$K.mcmc)[1]  #tells you mapK
 
-fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+#fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+fig_title = ""
 
 dat_10<-preparedat_fig(res_acs10,mapK,sesvars)
 
@@ -101,7 +102,7 @@ p_10_heatmap2<- plot_thetakj_heatmap_r(prob_est_long = dat_10, fig_title)
 #p_10_group_flipped<-plot_thetakj_group_flipped(prob_est_long = dat_10, mapK,color_palette = group_cols, fig_title)
 
 
-p_10_indiv
+#p_10_indiv
 p_10_group
 p_10_heatmap
 
@@ -173,8 +174,7 @@ table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merg
 #### Distribution of assignment probabilities to the most probable cluster
 
 ```{r}
-
-merged10 %>%  ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
+boxplot10<- merged10 %>%  ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
@@ -198,7 +198,7 @@ table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assig
 #|   -  "Neighborhood  SES variables Domains"
 mapK<-Mode(res_acs15$K.mcmc)[1]  #tells you mapK
 
-fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+fig_title = ""
 
 dat_15<-preparedat_fig(res_acs15,mapK,sesvars)
 p_15_indiv<-plot_thetakj_indiv(prob_est_long = dat_15, mapK,color_palette = pastel_palette1, fig_title)
@@ -312,7 +312,13 @@ table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment, data = merg
 #### Distribution of assignment probabilities to the most probable cluster
 
 ```{r}
-merged15 %>% ggplot(aes(x = ClusterAssignment_new, y = probassign, fill = ClusterAssignment_new)) +
+# boxplot15<-merged15 %>% ggplot(aes(x = ClusterAssignment, y = maxProb, fill = ClusterAssignment)) +
+#   geom_boxplot() +
+#   labs(fill = "Cluster Assignment", 
+#        y = "Assignment Probability after ECR algorithm", 
+#        x= "")
+
+boxplot15_new<-merged15 %>% ggplot(aes(x = ClusterAssignment_new, y = probassign, fill = ClusterAssignment_new)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
@@ -337,7 +343,7 @@ table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assig
 #|   -  "Neighborhood  SES variables Domains"
 mapK<-Mode(res_acs19$K.mcmc)[1]  #tells you mapK
 
-fig_title = paste("Success Probabilities when mapK=", mapK, sep="")
+fig_title = ""
 
 dat_19<-preparedat_fig(res_acs19,mapK,sesvars)
 p_19_indiv<-plot_thetakj_indiv(prob_est_long = dat_19, mapK,color_palette = pastel_palette1, fig_title)
@@ -446,7 +452,7 @@ table1(~ lang_home_notEN + lang_home_EN_notwell  |ClusterAssignment_new, data = 
 #### Distribution of assignment probabilities to the most probable cluster
 
 ```{r}
-merged19%>%  ggplot(aes(x = ClusterAssignment_new, y = probassign, fill = ClusterAssignment_new)) +
+boxplot19<-merged19%>%  ggplot(aes(x = ClusterAssignment_new, y = probassign, fill = ClusterAssignment_new)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
@@ -496,7 +502,7 @@ map10<-map10 %>%  select(GEOID, NAME.x, ClusterAssignment, maxProb, geometry) %>
 map10<- map10 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment))
 map10$`Probabilistic Cluster Assingment`<-as.factor(map10$`Probabilistic Cluster Assingment`)
 
-tm_shape(st_make_valid(map10)) +
+map10_clust<-tm_shape(st_make_valid(map10)) +
   tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
   tm_borders() +
   tm_layout(title = "2006-2010 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
@@ -527,7 +533,7 @@ map15<- map15 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(Cluster
 map15$`Probabilistic Cluster Assingment`<-as.factor(map15$`Probabilistic Cluster Assingment`)
 
 
-tm_shape(st_make_valid(map15)) +
+map15_clust<-tm_shape(st_make_valid(map15)) +
   tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
   tm_borders() +
   tm_layout(title = "2011-2015 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
@@ -555,7 +561,7 @@ map19<-map19 %>%  select(GEOID, NAME.x, ClusterAssignment_new, probassign, geome
 map19<- map19 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment_new))
 map19$`Probabilistic Cluster Assingment`<-as.factor(map19$`Probabilistic Cluster Assingment`)
 
-tm_shape(st_make_valid(map19)) +
+map19_clust<-tm_shape(st_make_valid(map19)) +
   tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
   tm_borders() +
   tm_layout(title = "2015-2019 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
