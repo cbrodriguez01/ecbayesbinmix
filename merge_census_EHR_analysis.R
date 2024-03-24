@@ -7,6 +7,7 @@ library(openxlsx)
 library(tidyverse)
 library(ggplot2)
 library(Hmisc)
+library(readxl)
 library(gmodels)
 `%!in%` <- Negate(`%in%`)
 
@@ -318,22 +319,58 @@ CrossTable(ehrcensus19$optimal_care, ehrcensus19$ClusterAssignment_new, prop.c =
 #####------ 2006-2010-----
 #We will model the probability of not receiving optimal care
 #I want cluster 4 to be reference
-ehrcensus10$ClusterAssignmentq <- relevel(ehrcensus10$ClusterAssignment , ref= 4)
+ehrcensus10$ClusterAssignmentr <- relevel(ehrcensus10$ClusterAssignment , ref= 4)
 ehrcensus10$notoptimal<- ifelse(ehrcensus10$optimal_care == "Not optimal", 1, 0)
 
+check<-ehrcensus10 %>% filter(cluster==4) %>% select("census_tract","NAME", "race_eth",  "optimal_care")
+
 #Unadjusted
-mod1<-glm(notoptimal ~ ClusterAssignmentq,family=binomial(link='logit'),data= ehrcensus10)
+mod1<-glm(notoptimal ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus10)
 ##The odds of not receiving optimal care are 0.63 lower
 
 table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
          RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
          FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
          facility_docspecialty1 + ClusterAssignment| optimal_care, data= ehrcensus10, overall=F, extra.col=list(`P-value`=pvalue))
+# 
+# #Fix p-values-- TBF
+# set.seed(1234)
+# variables<- c("optimal_care", "race_eth ","nativity", "age_dx_cat", "Grade_cat", "trt_summary_overall", 
+#                 "RX_Summ_Surg_Primary_Site_c", "radiation_yn", "Rad_Reg_Rx_Mod_cat" , "chemo_yn", 
+#                 "FIGOStage", "insurance_status", "facility_type1_cat", "facility_size1",
+#                 "facility_docspecialty1", "ClusterAssignment")
+# p_values_check<-function(variables, dataset){
+#   pvalues<-matrix(0, nrow = length(variables), ncol = 3)
+#   colnames(pvalues)<-c("varname", "chisq", "fisher")
+#   r<-1
+#   for( v in variables){
+#     tests<-CrossTable(dataset$v, dataset$variables[1], prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
+#     chiq<-tests$chisq$p.value
+#     fisher<-tests$fisher.ts$p.value
+#     pvalues[r,]<- c(v, chiq, fisher)
+#     r<-r+1
+# }
+# 
+# }
+set.seed(1234)
+CrossTable(ehrcensus10$race_eth, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$nativity, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$age_dx_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$Grade_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$trt_summary_overall, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$RX_Summ_Surg_Primary_Site_c, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$Rad_Reg_Rx_Mod_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$radiation_yn, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$chemo_yn, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$insurance_status, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
+CrossTable(ehrcensus10$facility_type1_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3,simulate.p.value=TRUE)
+CrossTable(ehrcensus10$facility_size1, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3)
+CrossTable(ehrcensus10$ClusterAssignment, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3)
 
 
 
 #Adjust for socio-demographic characteristics
-#Recode- race/eth
+#Recode- race/eth---- not merge other wiht missing
 ehrcensus10<- ehrcensus10 %>% mutate( race_eth_recode = case_when(
   race_eth %in% c("Non-Hispanic Asian", "Other", "Missing/unknown") ~ 4,
   race_eth == "Non-Hispanic White" ~ 1,
@@ -344,17 +381,17 @@ ehrcensus10<- ehrcensus10 %>% mutate( race_eth_recode = case_when(
 ehrcensus10$race_eth_recode<- factor(ehrcensus10$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
   
 
-mod2<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus10)
+mod2<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod2)
 #Facility information 
-mod3<-glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus10)
+mod3<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod3)
 #Adjust for  tumor info
-mod4<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus10)
+mod4<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod4)
 
 #Full model
-mod5<- glm(notoptimal ~ ClusterAssignmentq + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus10)
+mod5<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod5)
 
 #Nice output
@@ -377,14 +414,20 @@ tab_model(mod1, mod2, mod3, mod4, mod5,  p.style = "stars", pred.labels =  pred.
           string.ci = "95% CI", show.intercept = F)
 
 
+#Plot models: https://strengejacke.github.io/sjPlot/articles/blackwhitefigures.html
+# set variable label for response
+set_label(ehrcensus10$notoptimal) <- "Did not receive optimal care"
+plot_models(mod1, mod5)
+
+
 
 #####------ 2011-2015-----
 
-ehrcensus15$ClusterAssignmentq <- relevel(ehrcensus15$ClusterAssignment_new , ref= 2)
+ehrcensus15$ClusterAssignmentr <- relevel(ehrcensus15$ClusterAssignment_new , ref= 2)
 ehrcensus15$notoptimal<- ifelse(ehrcensus15$optimal_care == "Not optimal", 1, 0)
 
 #Unadjusted
-mod1_2<-glm(notoptimal ~ ClusterAssignmentq,family=binomial(link='logit'),data= ehrcensus15)
+mod1_2<-glm(notoptimal ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus15)
 ##The odds of not receiving optimal care are 0.63 lower
 
 table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
@@ -406,17 +449,17 @@ ehrcensus15<- ehrcensus15 %>% mutate( race_eth_recode = case_when(
 ehrcensus15$race_eth_recode<- factor(ehrcensus15$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
 
 
-mod2_2<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus15)
+mod2_2<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus15)
 summary(mod2_2)
 #Facility information 
-mod3_2<-glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus15)
+mod3_2<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus15)
 summary(mod3_2)
 #Adjust for  tumor info
-mod4_2<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus15)
+mod4_2<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus15)
 summary(mod4_2)
 
 #Full model
-mod5_2<- glm(notoptimal ~ ClusterAssignmentq + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
+mod5_2<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
            + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus15)
 summary(mod5_2)
 
@@ -430,15 +473,16 @@ tab_model(mod1_2, mod2_2, mod3_2, mod4_2, mod5_2,  p.style = "stars", pred.label
           string.ci = "95% CI", show.intercept = F)
 
 
-
+set_label(ehrcensus15$notoptimal) <- "Did not receive optimal care"
+plot_models(mod1_2, mod5_2)
 
 #####------ 2015-2019-----
 
-ehrcensus19$ClusterAssignmentq <- relevel(ehrcensus19$ClusterAssignment_new , ref= 4)
+ehrcensus19$ClusterAssignmentr <- relevel(ehrcensus19$ClusterAssignment_new , ref= 4)
 ehrcensus19$notoptimal<- ifelse(ehrcensus19$optimal_care == "Not optimal", 1, 0)
 
 #Unadjusted
-mod1_3<-glm(notoptimal ~ ClusterAssignmentq,family=binomial(link='logit'),data= ehrcensus19)
+mod1_3<-glm(notoptimal ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus19)
 ##The odds of not receiving optimal care are 0.63 lower
 
 table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
@@ -460,17 +504,17 @@ ehrcensus19<- ehrcensus19 %>% mutate( race_eth_recode = case_when(
 ehrcensus19$race_eth_recode<- factor(ehrcensus19$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
 
 
-mod2_3<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus19)
+mod2_3<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus19)
 summary(mod2_3)
 #Facility information 
-mod3_3<-glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus19)
+mod3_3<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus19)
 summary(mod3_3)
 #Adjust for  tumor info
-mod4_3<- glm(notoptimal ~ ClusterAssignmentq + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus19)
+mod4_3<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus19)
 summary(mod4_3)
 
 #Full model
-mod5_3<- glm(notoptimal ~ ClusterAssignmentq + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
+mod5_3<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
              + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus19)
 summary(mod5_3)
 
@@ -482,5 +526,28 @@ pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1:3, 5:7)),"YearDx:2016", "Ye
 tab_model(mod1_3, mod2_3, mod3_3, mod4_3, mod5_3,  p.style = "stars", pred.labels =  pred.labels2, dv.labels = paste0("Model", sep=" ", 1:5),
           string.pred = "Coeffcient",
           string.ci = "95% CI", show.intercept = F)
+
+
+
+
+#Using cluster colors-- unadjusted
+mod1a<- glm(notoptimal ~ cluster_color,family=binomial(link='logit'), data= ehrcensus10)
+summary(mod1a)
+
+mod1b<- glm(notoptimal ~ cluster_color,family=binomial(link='logit'), data= ehrcensus15)
+summary(mod1b)
+
+mod1c<- glm(notoptimal ~ cluster_color, family=binomial(link='logit'),data= ehrcensus19)
+summary(mod1c)
+
+tab_model(mod1a, mod1b, mod1c, p.style = "stars", dv.labels = paste0("ACS", sep=" ", 1:3),
+          string.pred = "Coeffcient",
+          string.ci = "95% CI", show.intercept = F)
+
+
+
+#Crosstabs
+
+table(dat10$cluster_color, dat15$cluster_color)
 
 
