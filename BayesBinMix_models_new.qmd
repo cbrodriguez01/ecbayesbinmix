@@ -127,13 +127,22 @@ classificationprobs_10<-res_acs10$classificationProbabilities.ecr
 # Add cluster classification based on maximum probability 
 maxProb<-apply(classificationprobs_10, 1, max)
 ClusterAssignment<-res_acs10$clusterMembershipPerMethod[,2]
+#ClusterAssignment_ecr_temp<-apply(classificationprobs_10,1, highest_index)
+
 
 classificationprobs_10$ClusterAssignment<-ClusterAssignment
 classificationprobs_10$maxProb<-maxProb
+#classificationprobs_10$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
+
+#head(classificationprobs_10)
+#table(classificationprobs_10$ClusterAssignment, #classificationprobs_10$ClusterAssignment_ecr_temp)
+#classificationprobs_10 %>% filter(ClusterAssignment_ecr_temp != ClusterAssignment)
+##This is odd-- my understanding is that these algorithms assigned observations to clusters probabilistically based on the highest posterior probabilities of cluster assignments given the observed data.
+
+#Permutation that is consistent across MCMC samples?
 
 #Prep Data
 classificationprobs_10$GEOID<-row.names(censusdata_bin$acs5_2010_bin)
-
 
 classificationprobs_10$ClusterAssignment<- factor(classificationprobs_10$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
 
@@ -227,6 +236,14 @@ tail(stats, mapK) %>% kable()
 classificationprobs_15<-res_acs15$classificationProbabilities.ecr
 # Add cluster classification based on maximum probability 
 maxProb<-apply(classificationprobs_15, 1, max)
+
+#Find index of highest probability
+highest_index<-function(vec){
+  s<-length(vec)
+  vec1<-order(vec)
+ return(vec1[s])
+}
+
 #Find second highest probability
 second_highest<-function(vec){
   vec1<-sort(vec, decreasing = T)
@@ -240,12 +257,15 @@ second_highest_index<-function(vec){
 
 maxProb2<-apply(classificationprobs_15, 1, second_highest)
 ClusterAssignment_new <-apply(classificationprobs_15, 1, second_highest_index)
-
+ClusterAssignment_ecr_temp<-apply(classificationprobs_15,1, highest_index)
 
 classificationprobs_15$ClusterAssignment_ecr<-res_acs15$clusterMembershipPerMethod[,2]
+classificationprobs_15$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
 classificationprobs_15$maxProb<-maxProb
 classificationprobs_15$maxProb2<-maxProb2
 classificationprobs_15$temp<-ClusterAssignment_new
+
+table(classificationprobs_15$ClusterAssignment_ecr_temp, classificationprobs_15$ClusterAssignment_ecr)
 
 
 #Output probabilities
@@ -381,33 +401,39 @@ classificationprobs_19<-res_acs19$classificationProbabilities.ecr
 maxProb<-apply(classificationprobs_19, 1, max)
 maxProb2<-apply(classificationprobs_19, 1, second_highest)
 ClusterAssignment_new <-apply(classificationprobs_19, 1, second_highest_index)
-
+ClusterAssignment_ecr_temp<-apply(classificationprobs_19,1, highest_index)
 
 classificationprobs_19$maxProb<-maxProb
 classificationprobs_19$maxProb2<-maxProb2
 classificationprobs_19$ClusterAssignment_ecr<-res_acs19$clusterMembershipPerMethod[,2]
+classificationprobs_19$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
 classificationprobs_19$temp<-ClusterAssignment_new 
 
 
 #Output probabilities
-classificationprobs_19 %>% filter(ClusterAssignment_ecr == 5) %>% select(ClusterAssignment_ecr, temp, maxProb, maxProb2)
+classificationprobs_19 %>% filter(ClusterAssignment_ecr %in% c(2,5)) %>% select(ClusterAssignment_ecr, temp, maxProb, maxProb2, ClusterAssignment_ecr_temp)
 
 #2nd highest probs for cluster 5
-classificationprobs_19<-classificationprobs_19 %>% mutate(ClusterAssignment_newd= ifelse(ClusterAssignment_ecr == 5,  temp,ClusterAssignment_ecr), probassign = ifelse( ClusterAssignment_ecr == 5,maxProb2,maxProb))
+classificationprobs_19<-classificationprobs_19 %>% mutate(ClusterAssignment_newd= ifelse(ClusterAssignment_ecr %in% c(2,5),  temp,ClusterAssignment_ecr), probassign = ifelse( ClusterAssignment_ecr %in% c(2,5),maxProb2,maxProb))
 
+
+table(classificationprobs_19$ClusterAssignment_newd)
+#The issue of label switching i was exploring--move the 2 cts on cluster 2
+classificationprobs_19 %>% filter(ClusterAssignment_newd == 2) 
+classificationprobs_19$ClusterAssignment_newd<-ifelse(classificationprobs_19$ClusterAssignment_newd==2, ClusterAssignment_ecr_temp, classificationprobs_19$ClusterAssignment_newd)
 
 #Prep Data 
 classificationprobs_19$GEOID<-row.names(censusdata_bin$acs5_2019_bin)
 
+
 #Re-label to be 8 clusters 
 classificationprobs_19<-classificationprobs_19 %>% mutate(ClusterAssignment_new = case_when(
    ClusterAssignment_newd == 1~ 1,
-   ClusterAssignment_newd == 2~ 2,
-   ClusterAssignment_newd == 3~ 3,
-   ClusterAssignment_newd == 4~ 4,
-   ClusterAssignment_newd == 6~ 5,
-   ClusterAssignment_newd == 7~ 6,
-   ClusterAssignment_newd == 8 ~ 7,
+   ClusterAssignment_newd == 3~ 2,
+   ClusterAssignment_newd == 4~ 3,
+   ClusterAssignment_newd == 6~ 4,
+   ClusterAssignment_newd == 7~ 5,
+   ClusterAssignment_newd == 8~ 6,
 ))
 
 table(classificationprobs_19$ClusterAssignment_ecr)
@@ -415,7 +441,7 @@ table(classificationprobs_19$ClusterAssignment_newd)
 table(classificationprobs_19$ClusterAssignment_new)
 
 classificationprobs_19$ClusterAssignment_new<- 
-  factor(classificationprobs_19$ClusterAssignment_new, levels = 1:7, labels = paste0("cluster", 1:7, sep= " "))
+  factor(classificationprobs_19$ClusterAssignment_new, levels = 1:6, labels = paste0("cluster", 1:6, sep= " "))
 
 
 dat19_clusters<- classificationprobs_19 %>% select(GEOID,ClusterAssignment_new, probassign)
@@ -472,6 +498,53 @@ table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assig
 
 ```
 
+#### CROSS-TABS
+
+```{r}
+#We will use 2006-2010 survey as the reference, that is we will compare to this survey
+table(acs10 = merged10$ClusterAssignment, acs15 = merged15$ClusterAssignment_new)
+
+#Relabel clusters in acs15 based on qualitative descriptions
+merged15$clustersnum<- as.numeric(merged15$ClusterAssignment_new)
+merged15<-merged15 %>% mutate(ClusterAssignment = case_when(
+  clustersnum == 1 ~ 7,
+  clustersnum == 2 ~ 4,
+  clustersnum == 3 ~ 2,
+  clustersnum == 4 ~ 5,
+  clustersnum == 5 ~ 6,
+  clustersnum == 6 ~ 1,
+  clustersnum == 7 ~ 8,
+  clustersnum == 8 ~ 3,
+))
+
+table(merged15$clustersnum, merged15$ClusterAssignment)
+merged15$ClusterAssignment<- 
+  factor(merged15$ClusterAssignment, levels = 1:8, labels = paste0("cluster", 1:8, sep= " "))
+
+table(acs10 = merged10$ClusterAssignment, acs15 = merged15$ClusterAssignment)
+
+
+#Similarly for 2015-2019 we use 2011-2015 as refence
+table(acs15 = merged15$ClusterAssignment, acs19 = merged19$ClusterAssignment_new)
+merged19$clustersnum<- as.numeric(merged19$ClusterAssignment_new)
+merged19<-merged19 %>% mutate(ClusterAssignment = case_when(
+  clustersnum == 1 ~ 2,
+  clustersnum == 2 ~ 3,
+  clustersnum == 3 ~ 6,
+  clustersnum == 4 ~ 5,
+  clustersnum == 5 ~ 8,
+  clustersnum == 6 ~ 1,
+))
+
+table(merged19$clustersnum, merged19$ClusterAssignment)
+
+merged19$ClusterAssignment<- 
+  factor(merged19$ClusterAssignment, levels = c(1,2,3,5,6,8), labels = paste0("cluster", c(1,2,3,5,6,8), sep= " "))
+
+table(merged15$ClusterAssignment,merged19$ClusterAssignment)
+
+```
+
 ### MAPS
 
 ```{r}
@@ -486,6 +559,12 @@ library(geodaData)
 #https://stackoverflow.com/questions/73990261/unable-to-plot-the-census-tracts-using-tmap
 #https://ggplot2.tidyverse.org/reference/ggsf.html
 #https://r-spatial.org/r/2017/03/19/invalid.html#empty-geometries
+
+
+
+#Brew colors
+colorswant<-RColorBrewer::brewer.pal(9, "Set1")
+
 options(tigris_use_cache = TRUE)
 temp<-get_acs(state = "MA", geography = "tract", 
                    variables = "B03002_001", year = 2010, geometry = TRUE, cache_table = TRUE)
@@ -509,10 +588,9 @@ map10<- map10 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(Cluster
 map10$`Probabilistic Cluster Assingment`<-as.factor(map10$`Probabilistic Cluster Assingment`)
 
 map10_clust<-tm_shape(st_make_valid(map10)) +
-  tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette=colorswant,)  +
   tm_borders() +
-  tm_layout(title = "2006-2010 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
-
+  tm_layout(title = "2006-2010 ACS Census Tracts", title.position = c("left","top"), scale = 1.2)
 
 ```
 
@@ -521,11 +599,11 @@ temp<-get_acs(state = "MA", geography = "tract",
                    variables = "DP05_0065", year = 2015, geometry = TRUE, cache_table = TRUE)
 
 temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
-dat15map<-merged15 %>% select(GEOID,NAME, ClusterAssignment_new, probassign) 
+dat15map<-merged15 %>% select(GEOID,NAME, ClusterAssignment, probassign) 
 
 #join datasets
 map15<- merge(temp1, dat15map, by = "GEOID")
-map15<-map15 %>%  select(GEOID, NAME.x, ClusterAssignment_new, probassign, geometry) %>% rename(NAME = NAME.x)
+map15<-map15 %>%  select(GEOID, NAME.x, ClusterAssignment, probassign, geometry) %>% rename(NAME = NAME.x)
 
 # tm_shape(st_make_valid(map15)) + 
 #   tm_polygons(col = "probassign",style = "quantile",
@@ -535,14 +613,14 @@ map15<-map15 %>%  select(GEOID, NAME.x, ClusterAssignment_new, probassign, geome
 #             frame = FALSE,
 #             legend.outside = TRUE)
 
-map15<- map15 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment_new))
+map15<- map15 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment))
 map15$`Probabilistic Cluster Assingment`<-as.factor(map15$`Probabilistic Cluster Assingment`)
 
 
 map15_clust<-tm_shape(st_make_valid(map15)) +
-  tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette=colorswant,)  +
   tm_borders() +
-  tm_layout(title = "2011-2015 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
+  tm_layout(title = "2011-2015 ACS Census Tracts", title.position = c("left","top"), scale = 1.2)
 ```
 
 ```{r}
@@ -550,11 +628,11 @@ temp<-get_acs(state = "MA", geography = "tract",
                    variables = "B03002_001", year = 2019, geometry = TRUE, cache_table = TRUE)
 
 temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
-dat19map<-merged19 %>% select(GEOID,NAME, ClusterAssignment_new, probassign) 
+dat19map<-merged19 %>% select(GEOID,NAME, ClusterAssignment, probassign) 
 
 #join datasets
 map19<- merge(temp1, dat19map, by = "GEOID")
-map19<-map19 %>%  select(GEOID, NAME.x, ClusterAssignment_new, probassign, geometry) %>% rename(NAME = NAME.x)
+map19<-map19 %>%  select(GEOID, NAME.x, ClusterAssignment, probassign, geometry) %>% rename(NAME = NAME.x)
 
 # tm_shape(st_make_valid(map19)) + 
 #   tm_polygons(col = "probassign",style = "quantile",
@@ -564,19 +642,22 @@ map19<-map19 %>%  select(GEOID, NAME.x, ClusterAssignment_new, probassign, geome
 #             frame = FALSE,
 #             legend.outside = TRUE)
 
-map19<- map19 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment_new))
+map19<- map19 %>% mutate(`Probabilistic Cluster Assingment` = ClusterAssignment)
 map19$`Probabilistic Cluster Assingment`<-as.factor(map19$`Probabilistic Cluster Assingment`)
 
+#colors to match other maps
+colmatch<-c("#E41A1C", "#377EB8","#4DAF4A","#FF7F00", "#FFFF33","#F781BF")
 map19_clust<-tm_shape(st_make_valid(map19)) +
-  tm_fill("Probabilistic Cluster Assingment",style="cat",palette="Set1",)  +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette=colmatch,)  +
   tm_borders() +
-  tm_layout(title = "2015-2019 ACS Census Tracts", title.position = c("left","top"), scale = 0.8)
+  tm_layout(title = "2015-2019 ACS Census Tracts", title.position = c("left","top"), scale = 1.2)
 
 ```
 
 ```{r}
 #3 datasets with cluster assingment, prob of assingment
-dat10<-map10 %>% select(GEOID, NAME, ClusterAssignment, maxProb)
+map10_1<- as.data.frame(map10)
+dat10<-map10_1 %>% select(GEOID, NAME, ClusterAssignment, maxProb)
 dat10$cluster_color<-as.numeric(dat10$ClusterAssignment)
 dat10$cluster_color<- factor(dat10$cluster_color,levels = 1:9, labels= c("red", "blue",
  "green","purple","orange","yellow", "brown","pink","grey"))
@@ -585,80 +666,22 @@ table(dat10$cluster_color)
 table(dat10$ClusterAssignment)
 
 
-dat15<-map15 %>% select(GEOID, NAME, ClusterAssignment_new, probassign)
-dat15$cluster_color<-as.numeric(dat15$ClusterAssignment_new)
+
+dat15<-as.data.frame(map15) %>% select(GEOID, NAME, ClusterAssignment, probassign)
+dat15$cluster_color<-as.numeric(dat15$ClusterAssignment)
 dat15$cluster_color<- factor(dat15$cluster_color,levels = 1:8, labels= c("red", "blue",
  "green","purple","orange","yellow", "brown","pink"))
 
 table(dat15$cluster_color)
-table(dat15$ClusterAssignment_new)
+table(dat15$ClusterAssignment)
 
 
-dat19<-map19 %>% select(GEOID, NAME, ClusterAssignment_new, probassign)
-dat19$cluster_color<-as.numeric(dat19$ClusterAssignment_new)
-dat19$cluster_color<- factor(dat19$cluster_color,levels = 1:7, labels= c("red", "blue",
- "green","purple","orange","yellow", "brown"))
+dat19<-as.data.frame(map19) %>% select(GEOID, NAME, ClusterAssignment, probassign)
+dat19$cluster_color<-as.numeric(dat19$ClusterAssignment)
+dat19$cluster_color<- factor(dat19$cluster_color,levels = c(1,2,3,5,6,8), labels= c("red", "blue","green","orange","yellow", "pink"))
 
 table(dat19$cluster_color)
 table(dat19$ClusterAssignment)
-
-
-
-```
-
-### Cross-tabs
-
-```{r}
-
-#Looking at clusters 1 and 2 in comparison to acs 2006-2010
-#table(acs10=merged10$ClusterAssignment, acs15=merged15$ClusterAssignment)
-
-# cluster 2 cts were classified as cluster 4 and cluster 8 on the previous year
-#25013812902 (Census Tract 8129.02, Hampden County, Massachusetts) & 25021415102 (Census Tract 4151.02, Norfolk County, Massachusetts)
-
-#merged10 %>% filter(GEOID %in% c("25013812902","25021415102"))
-
-#merged19 %>% filter(GEOID %in% c("25013812902","25021415102"))
-
-#Looking at clusters 1 and 2 in comparison to acs 2006-2010
-#table(acs10=merged10$ClusterAssignment, acs19=merged19$ClusterAssignment)
-
-#table(acs15= merged15$ClusterAssignment, acs19= merged19$ClusterAssignment)
-
-#load("./bayesbinmix_clustered_tracts.RData")
-
-table(acs15=dat15$cluster_color, acs10=dat10$cluster_color)
-table(acs10=dat10$cluster_color, acs19=dat19$cluster_color)
-table(acs15=dat15$cluster_color, acs19=dat19$cluster_color)
-
-#We are going to use 2006-2010 as the reference clusters, that is i am looking at concondance between 2010-> 2015 and 2010->2019
-
-dat10_1<- dat10[, c("GEOID", "cluster_color")]
-dat10_1 <- dat10_1 %>% rename(cluster_color_10= cluster_color)
-dat1015<-merge(dat15[, c("GEOID", "cluster_color")], dat10_1, by= "GEOID")
-
-dat1015$cluster_color_15<- ifelse(dat1015$cluster_color_10 %in% dat1015$cluster_color, dat1015$cluster_color_10, dat1015$cluster_color)
-
-dat1015$cluster_color_15<-factor(dat1015$cluster_color_15,levels = 1:8, labels= c("red", "blue","green","purple","orange","yellow", "brown","pink"))
-
-
-check<-dat1015 %>% filter(cluster_color_10 %in% cluster_color) %>% select(cluster_color_10, cluster_color,cluster_color_15)
-
-table1::table1( ~ cluster_color_10|cluster_color, data = dat1015)
-
-
-dat1015$cluster_col15<- factor(dat1015$cluster_color, levels = dat1015[order(dat1015$cluster_color_10), "cluster_color"])
-levels(dat1015$cluster_col15)
-
-
-
-
-#Identify concordant observations: Determine which observations have the same labels in both variables despite having different distributions. You can achieve this by comparing the two variables.
-
-#Create a new variable: Once you have identified the concordant observations, create a new variable that matches the labeling based on one of the variables.
-
-dat1015 %>% filter(cluster_color == "red") %>% select(GEOID, cluster_color, cluster_color_10)
-
 
 ```
 

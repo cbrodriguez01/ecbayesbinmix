@@ -1,6 +1,6 @@
 library(stringr)
 library(lubridate)
-library(table1)
+#library(table1)
 library(flextable)
 library(magrittr)
 library(openxlsx)
@@ -9,7 +9,10 @@ library(ggplot2)
 library(Hmisc)
 library(readxl)
 library(gmodels)
+library(furniture)
+library(tableone)
 `%!in%` <- Negate(`%in%`)
+source("pvaluescal.R")
 
 #For more detail information see "merged_census_ehr_enar.Rmd" and email from July 20th 2022
 # - In the census data we found 1411 census tracts that are contained in the EHR data, however there were a few cases 
@@ -39,6 +42,56 @@ ptids_crosswalks <- read_excel("/Users/carmenrodriguez/Library/CloudStorage/OneD
 ehrdata_wids<-merge(ptids_crosswalks, ehrdata , 
                     by = "Patient_ID_Num")
 ehrdata_countyfips<-right_join(county_codes, ehrdata_wids, by = "Patient_ID_num1") %>% arrange(Patient_ID_Num)
+
+#3/26/24: Before splitting add new race/ehtnicity variable and exclusions
+#Drop missing/unknown race/ethnicity category
+#Recode- race/eth---- merge NHA WITH OTHER
+ehrdata_countyfips<- ehrdata_countyfips %>% mutate(race_eth_recode = case_when(
+  race_eth %in% c("Non-Hispanic Asian", "Other") ~ 4,
+  race_eth == "Non-Hispanic White" ~ 1,
+  race_eth == "Non-Hispanic Black" ~ 2,
+  race_eth == "Hispanic" ~ 3,
+  race_eth == "Missing/unknown" ~ NA,
+))
+
+ehrdata_countyfips$race_eth_recode<- factor(ehrdata_countyfips$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
+table(ehrdata_countyfips$race_eth_recode)
+
+table(ehrdata_countyfips$race_eth_recode, ehrdata_countyfips$nativity)
+
+
+#Other pre-processing
+table(ehrdata_countyfips$RX_Summ_Surg_Primary_Site_c)
+ehrdata_countyfips$type_surg_received<-ifelse(ehrdata_countyfips$RX_Summ_Surg_Primary_Site_c %in% c("Other Surgery","Unknown"), 4, ehrdata_countyfips$RX_Summ_Surg_Primary_Site_c)
+table(ehrdata_countyfips$type_surg_received)
+
+ehrdata_countyfips$type_surg_received<-factor(ehrdata_countyfips$type_surg_received, levels = 1:4, labels = c("None", "Tumor destruction","Resection", "Other/Unknown"))
+
+ehrdata_countyfips$facility_type1_cat_1<-ifelse(ehrdata_countyfips$facility_type1_cat%in% c("Unknown"), NA, ehrdata_countyfips$facility_type1_cat)
+ehrdata_countyfips$facility_type1_cat_1<-factor(ehrdata_countyfips$facility_type1_cat_1, levels = 1:4, labels = c("Academic Medical Centers" ,"Community","Specialty","Teaching"))
+
+ehrdata_countyfips$yeardx_fct<-as.factor(ehrdata_countyfips$yeardx)
+
+
+
+#Fix table 1-- row percentages
+variables1<- c("race_eth_recode", "nativity", "age_dx_cat","yeardx_fct","insurance_status","trt_summary_overall",
+              "type_surg_received", "radiation_yn", "Rad_Reg_Rx_Mod_cat", "chemo_yn",
+              "FIGOStage", "Grade_cat", "facility_type1_cat_1", "facility_size1",
+              "facility_docspecialty1")
+
+table1paper<-CreateTableOne(vars = variables1,strata = "optimal_care", data = ehrdata_countyfips, factorVars = variables1, includeNA= T, addOverall = T )
+for (i in 1:length(variables1)) {
+  sum = table1paper$CatTable[[2]][[i]]$freq + table1paper$CatTable[[3]][[i]]$freq
+  table1paper$CatTable[[2]][[i]]$percent = (table1paper$CatTable[[2]][[i]]$freq / sum)*100
+  table1paper$CatTable[[3]][[i]]$percent = (table1paper$CatTable[[3]][[i]]$freq / sum)*100
+}
+
+table1export<-print(table1paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+
+write.csv(table1export, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/myTable1_full.csv")
+#Export
+
 
 # Split data by range of years of diagnosis to match census datasets
 ehrdata_countyfips <- ehrdata_countyfips %>% rename( countycode = county_at_dx)
@@ -120,279 +173,196 @@ rmv<- which(!(ehrcensus19$countycode.x == ehrcensus19$countycode.y))
 #final
 ehrcensus19<- ehrcensus19 %>% filter(row_number() %!in%  rmv)
 
+#----------------------------------------------------------------------#
+# LOOK AT DISTRIBUTIONS ACROSS DIFFERENT ACS SURVEY WAVES BEFORE MODEL #
+#----------------------------------------------------------------------#
 
 #---ACS 2006-2010----
 ####----Look at distribution of cluster assignment by optimal care and other variables
-#Re-assign labels lost during merging
-label(ehrcensus10$Age_Dx)<- "Age at diagnosis"
-label(ehrcensus10$yeardx)<- "Year of diagnosis"
-label(ehrcensus10$Grade_cat)<- "Grade at diagnosis"
-label(ehrcensus10$Stage) <- "Stage at diagnosis (in progress)"
-label(ehrcensus10$RX_Dt_Surg_formatted)<- "Surgery date"
-label(ehrcensus10$RX_Dt_Rad_formatted)<- "Radiation first date"
-label(ehrcensus10$RX_Dt_Chemo_formatted)<- "Chemotherapy first date"
-label(ehrcensus10$RX_Summ_Surg_Primary_Site_c)<- "Type of surgery"
-label(ehrcensus10$Reason_No_Surg)<- "Reason for no surgery"
-label(ehrcensus10$RX_Summ_Surg_Rad_Seq)<- "Surgery-radiation sequence"
-label(ehrcensus10$RX_Summ_Chemo_f)<- "Chemotherapy summary/reasons no chemo"
-label(ehrcensus10$Rad_Reg_Rx_Mod_cat) <- "Type of radiation administered"
-label(ehrcensus10$Reason_No_Radiation) <- "Reason no radiation"
-label(ehrcensus10$RX_Dt_Most_Defin_Surg_formatted)<-"Date of most recent surgery"
-label(ehrcensus10$facility_size1)<- "Size of facility 1"
-label(ehrcensus10$facility_type1_cat)<-"Facility 1 type"
-label(ehrcensus10$facility_docspecialty1)<- "Specialty of doctor in facility 1"
-label(ehrcensus10$radiation_yn)<- "Radiation status"
-label(ehrcensus10$chemo_yn)<- "Chemotherapy status"
-label(ehrcensus10$trt_summary_overall) <- "Overall Treatment Status"
-label(ehrcensus10$earliestdate)<- "Date of first treatment"
-label(ehrcensus10$year1stTRT)<- "Year of first treatment"
-label(ehrcensus10$yeardx)<- "Year of diagnosis"
-label(ehrcensus10$nativity)<-"Birthplace"
-label(ehrcensus10$race_eth)<-"Race-Ethnicity"
-label(ehrcensus10$RX_Summ_Surg_Primary_Site_c) <- "Type of surgery recieved"
-label(ehrcensus10$age_dx_cat)<-"Age at diagnosis (y)"
-label(ehrcensus10$insurance_status)<-"Insurance Status at Diagnosis"
-label(ehrcensus10$optimal_care)<-"Optimal care"
-label(ehrcensus10$age_dx_cat)<-"Age at diagnosis (y)"
 
-#Add p-value
-pvalue <- function(x, ...) {
-  # Construct vectors of data y, and groups (strata) g
-  y <- unlist(x)
-  g <- factor(rep(1:length(x), times=sapply(x, length)))
-  if (is.numeric(y)) {
-    # For numeric variables, perform a standard 2-sample t-test
-    p <- t.test(y ~ g)$p.value
-  } else {
-    # For categorical variables, perform a chi-squared test of independence
-    p <- chisq.test(table(y, g))$p.value
-  }
-  # Format the p-value, using an HTML entity for the less-than sign.
-  # The initial empty string places the output on the line below the variable label.
-  c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+# table1::table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
+#                  RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
+#                  FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
+#                  facility_docspecialty1 + optimal_care |ClusterAssignment, data= ehrcensus10, overall=F, extra.col=list(`P-value`=pvalue))
+# 
+
+#To get row%
+library(furniture)
+#https://cran.r-project.org/web/packages/furniture/vignettes/Table1.html
+t1<-table1(ehrcensus10, race_eth_recode, nativity, age_dx_cat, trt_summary_overall,
+          type_surg_received, radiation_yn , Rad_Reg_Rx_Mod_cat , chemo_yn ,
+          FIGOStage, insurance_status, facility_type1_cat_1,facility_size1, 
+          facility_docspecialty1, ClusterAssignment, splitby = ~ optimal_care, row_wise = TRUE, export = "tab1", NAkeep = T)
+
+t1a<-table1(ehrcensus10, race_eth_recode, nativity, age_dx_cat, trt_summary_overall,
+            type_surg_received, radiation_yn , Rad_Reg_Rx_Mod_cat , chemo_yn ,
+            FIGOStage, insurance_status, facility_type1_cat_1,facility_size1, 
+            facility_docspecialty1, optimal_care, splitby = ~ ClusterAssignment, row_wise = TRUE, export = "tab1a")
+
+
+#Fix tables
+variables<- c("race_eth_recode", "nativity", "age_dx_cat","insurance_status","trt_summary_overall",
+               "type_surg_received", "radiation_yn", "Rad_Reg_Rx_Mod_cat", "chemo_yn",
+               "FIGOStage", "Grade_cat", "facility_type1_cat_1", "facility_size1",
+               "facility_docspecialty1", "ClusterAssignment")
+
+table2paper<-CreateTableOne(vars = variables,strata = "optimal_care", data = ehrcensus10, factorVars = variables, includeNA= T, addOverall = T )
+for (i in 1:length(variables)) {
+  sum = table2paper$CatTable[[2]][[i]]$freq + table2paper$CatTable[[3]][[i]]$freq
+  table2paper$CatTable[[2]][[i]]$percent = (table2paper$CatTable[[2]][[i]]$freq / sum)*100
+  table2paper$CatTable[[3]][[i]]$percent = (table2paper$CatTable[[3]][[i]]$freq / sum)*100
 }
 
-table1::table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
-                 RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
-                 FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
-                 facility_docspecialty1 + optimal_care |ClusterAssignment, data= ehrcensus10, overall=F, extra.col=list(`P-value`=pvalue))
+table2export<-print(table2paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
 
+write.csv(table2export, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab1.csv")
+#Export
 
-##MAKE THIS MORE EFFICIENT BUT WILL KEEP LIKE THIS FOR NOW
+variablesn<- c("race_eth_recode", "nativity", "age_dx_cat","insurance_status","trt_summary_overall",
+              "type_surg_received", "radiation_yn", "Rad_Reg_Rx_Mod_cat", "chemo_yn",
+              "FIGOStage", "Grade_cat", "facility_type1_cat_1", "facility_size1",
+              "facility_docspecialty1", "optimal_care")
 
-set.seed(1234)
-CrossTable(ehrcensus10$race_eth, ehrcensus10$ClusterAssignment, prop.c = F,  chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$nativity, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$age_dx_cat, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$insurance_status, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$Grade_cat, ehrcensus10$ClusterAssignment, prop.c = F,  chisq = T, digits = 3)
-CrossTable(ehrcensus10$RX_Summ_Surg_Primary_Site_c, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$trt_summary_overall, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$Rad_Reg_Rx_Mod_cat, ehrcensus10$ClusterAssignment, prop.c = F,chisq = T, digits = 3,simulate.p.value=TRUE)
-CrossTable(ehrcensus10$chemo_yn, ehrcensus10$ClusterAssignment, prop.c = F, chisq =T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$FIGOStage, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$facility_type1_cat, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$facility_size1, ehrcensus10$ClusterAssignment, prop.c = F, chisq = T, digits = 3,simulate.p.value=TRUE)
-CrossTable(ehrcensus10$facility_docspecialty1, ehrcensus10$ClusterAssignment, prop.c = F, prop.t = F, chisq = T, digits = 3, expected = F,simulate.p.value=TRUE)
-CrossTable(ehrcensus10$optimal_care, ehrcensus10$ClusterAssignment, prop.c = F, prop.t = F, chisq = T, digits = 3, expected = F)
+table2papera<-CreateTableOne(vars = variablesn,strata = "ClusterAssignment", data = ehrcensus10, factorVars = variablesn, includeNA= T, addOverall = T)
+for (i in 1:length(variablesn)) {
+  sum = table2papera$CatTable[[1]][[i]]$freq 
+  for(j in 2:10){
+  table2papera$CatTable[[j]][[i]]$percent = (table2papera$CatTable[[j]][[i]]$freq / sum)*100
+  }}
+table2exporta<-print(table2papera, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+write.csv(table2exporta, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab1a.csv")
+
 
 
 #---ACS 2011-2015----
 ####----Look at distribution of cluster assignment by optimal care and other variables
-#Re-assign labels lost during merging
-label(ehrcensus15$Age_Dx)<- "Age at diagnosis"
-label(ehrcensus15$yeardx)<- "Year of diagnosis"
-label(ehrcensus15$Grade_cat)<- "Grade at diagnosis"
-label(ehrcensus15$Stage) <- "Stage at diagnosis (in progress)"
-label(ehrcensus15$RX_Dt_Surg_formatted)<- "Surgery date"
-label(ehrcensus15$RX_Dt_Rad_formatted)<- "Radiation first date"
-label(ehrcensus15$RX_Dt_Chemo_formatted)<- "Chemotherapy first date"
-label(ehrcensus15$RX_Summ_Surg_Primary_Site_c)<- "Type of surgery"
-label(ehrcensus15$Reason_No_Surg)<- "Reason for no surgery"
-label(ehrcensus15$RX_Summ_Surg_Rad_Seq)<- "Surgery-radiation sequence"
-label(ehrcensus15$RX_Summ_Chemo_f)<- "Chemotherapy summary/reasons no chemo"
-label(ehrcensus15$Rad_Reg_Rx_Mod_cat) <- "Type of radiation administered"
-label(ehrcensus15$Reason_No_Radiation) <- "Reason no radiation"
-label(ehrcensus15$RX_Dt_Most_Defin_Surg_formatted)<-"Date of most recent surgery"
-label(ehrcensus15$facility_size1)<- "Size of facility 1"
-label(ehrcensus15$facility_type1_cat)<-"Facility 1 type"
-label(ehrcensus15$facility_docspecialty1)<- "Specialty of doctor in facility 1"
-label(ehrcensus15$radiation_yn)<- "Radiation status"
-label(ehrcensus15$chemo_yn)<- "Chemotherapy status"
-label(ehrcensus15$trt_summary_overall) <- "Overall Treatment Status"
-label(ehrcensus15$earliestdate)<- "Date of first treatment"
-label(ehrcensus15$year1stTRT)<- "Year of first treatment"
-label(ehrcensus15$yeardx)<- "Year of diagnosis"
-label(ehrcensus15$nativity)<-"Birthplace"
-label(ehrcensus15$race_eth)<-"Race-Ethnicity"
-label(ehrcensus15$RX_Summ_Surg_Primary_Site_c) <- "Type of surgery recieved"
-label(ehrcensus15$age_dx_cat)<-"Age at diagnosis (y)"
-label(ehrcensus15$insurance_status)<-"Insurance Status at Diagnosis"
-label(ehrcensus15$optimal_care)<-"Optimal care"
-label(ehrcensus15$age_dx_cat)<-"Age at diagnosis (y)"
+
+# table1::table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
+#                  RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
+#                  FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
+#                  facility_docspecialty1 + optimal_care |ClusterAssignment_new, data= ehrcensus15, overall=F, extra.col=list(`P-value`=pvalue))
 
 
-table1::table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
-                 RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
-                 FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
-                 facility_docspecialty1 + optimal_care |ClusterAssignment_new, data= ehrcensus15, overall=F, extra.col=list(`P-value`=pvalue))
+t2<-table1(ehrcensus15, race_eth_recode, nativity, age_dx_cat, trt_summary_overall,
+           type_surg_received , radiation_yn , Rad_Reg_Rx_Mod_cat , chemo_yn ,
+           FIGOStage, insurance_status, facility_type1_cat_1,facility_size1, 
+           facility_docspecialty1, ClusterAssignment_new, splitby = ~ optimal_care, row_wise = TRUE, export = "tab2")
+
+t2a<-table1(ehrcensus15, race_eth_recode, nativity, age_dx_cat, trt_summary_overall,
+            type_surg_received, radiation_yn , Rad_Reg_Rx_Mod_cat , chemo_yn ,
+            FIGOStage, insurance_status, facility_type1_cat_1,facility_size1, 
+            facility_docspecialty1, optimal_care, splitby = ~ ClusterAssignment_new, row_wise = TRUE, export = "tab2a")
 
 
-set.seed(1234)
-CrossTable(ehrcensus15$race_eth, ehrcensus15$ClusterAssignment_new, prop.c = F,  chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$nativity, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$age_dx_cat, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$insurance_status, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$Grade_cat, ehrcensus15$ClusterAssignment_new, prop.c = F,  chisq = T, digits = 3)
-CrossTable(ehrcensus15$RX_Summ_Surg_Primary_Site_c, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$trt_summary_overall, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$Rad_Reg_Rx_Mod_cat, ehrcensus15$ClusterAssignment_new, prop.c = F,chisq = T, digits = 3,simulate.p.value=TRUE)
-CrossTable(ehrcensus15$chemo_yn, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq =T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$FIGOStage, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$facility_type1_cat, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus15$facility_size1, ehrcensus15$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3,simulate.p.value=TRUE)
-CrossTable(ehrcensus15$facility_docspecialty1, ehrcensus15$ClusterAssignment_new, prop.c = F, prop.t = F, chisq = T, digits = 3, expected = F,simulate.p.value=TRUE)
-CrossTable(ehrcensus15$optimal_care, ehrcensus15$ClusterAssignment_new, prop.c = F, prop.t = F, chisq = T, digits = 3, expected = F)
+table3paper<-CreateTableOne(vars = variables,strata = "optimal_care", data = ehrcensus15, factorVars = variables, includeNA= T, addOverall = T )
+for (i in 1:length(variables)) {
+  sum = table3paper$CatTable[[2]][[i]]$freq + table3paper$CatTable[[3]][[i]]$freq
+  table3paper$CatTable[[2]][[i]]$percent = (table3paper$CatTable[[2]][[i]]$freq / sum)*100
+  table3paper$CatTable[[3]][[i]]$percent = (table3paper$CatTable[[3]][[i]]$freq / sum)*100
+}
+
+table3export<-print(table3paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+
+write.csv(table3export, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab2.csv")
+#Export
+
+table3papera<-CreateTableOne(vars = variablesn,strata = "ClusterAssignment", data = ehrcensus15, factorVars = variablesn, includeNA= T, addOverall = T)
+for (i in 1:length(variablesn)) {
+  sum = table3papera$CatTable[[1]][[i]]$freq 
+  for(j in 2:9){
+    table3papera$CatTable[[j]][[i]]$percent = (table3papera$CatTable[[j]][[i]]$freq / sum)*100
+  }}
+table3exporta<-print(table3papera, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+write.csv(table3exporta, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab2a.csv")
 
 
 
 #---ACS 2015-2019----
 ####----Look at distribution of cluster assignment by optimal care and other variables
-#Re-assign labels lost during merging
-label(ehrcensus19$Age_Dx)<- "Age at diagnosis"
-label(ehrcensus19$yeardx)<- "Year of diagnosis"
-label(ehrcensus19$Grade_cat)<- "Grade at diagnosis"
-label(ehrcensus19$Stage) <- "Stage at diagnosis (in progress)"
-label(ehrcensus19$RX_Dt_Surg_formatted)<- "Surgery date"
-label(ehrcensus19$RX_Dt_Rad_formatted)<- "Radiation first date"
-label(ehrcensus19$RX_Dt_Chemo_formatted)<- "Chemotherapy first date"
-label(ehrcensus19$RX_Summ_Surg_Primary_Site_c)<- "Type of surgery"
-label(ehrcensus19$Reason_No_Surg)<- "Reason for no surgery"
-label(ehrcensus19$RX_Summ_Surg_Rad_Seq)<- "Surgery-radiation sequence"
-label(ehrcensus19$RX_Summ_Chemo_f)<- "Chemotherapy summary/reasons no chemo"
-label(ehrcensus19$Rad_Reg_Rx_Mod_cat) <- "Type of radiation administered"
-label(ehrcensus19$Reason_No_Radiation) <- "Reason no radiation"
-label(ehrcensus19$RX_Dt_Most_Defin_Surg_formatted)<-"Date of most recent surgery"
-label(ehrcensus19$facility_size1)<- "Size of facility 1"
-label(ehrcensus19$facility_type1_cat)<-"Facility 1 type"
-label(ehrcensus19$facility_docspecialty1)<- "Specialty of doctor in facility 1"
-label(ehrcensus19$radiation_yn)<- "Radiation status"
-label(ehrcensus19$chemo_yn)<- "Chemotherapy status"
-label(ehrcensus19$trt_summary_overall) <- "Overall Treatment Status"
-label(ehrcensus19$earliestdate)<- "Date of first treatment"
-label(ehrcensus19$year1stTRT)<- "Year of first treatment"
-label(ehrcensus19$yeardx)<- "Year of diagnosis"
-label(ehrcensus19$nativity)<-"Birthplace"
-label(ehrcensus19$race_eth)<-"Race-Ethnicity"
-label(ehrcensus19$RX_Summ_Surg_Primary_Site_c) <- "Type of surgery recieved"
-label(ehrcensus19$age_dx_cat)<-"Age at diagnosis (y)"
-label(ehrcensus19$insurance_status)<-"Insurance Status at Diagnosis"
-label(ehrcensus19$optimal_care)<-"Optimal care"
-label(ehrcensus19$age_dx_cat)<-"Age at diagnosis (y)"
+# 
+# table1::table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
+#                  RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
+#                  FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
+#                  facility_docspecialty1 + optimal_care |ClusterAssignment_new, data= ehrcensus19, overall=F, extra.col=list(`P-value`=pvalue))
+# 
 
-table1::table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
-                 RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
-                 FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
-                 facility_docspecialty1 + optimal_care |ClusterAssignment_new, data= ehrcensus19, overall=F, extra.col=list(`P-value`=pvalue))
+t3<-table1(ehrcensus19, race_eth_recode, nativity, age_dx_cat, trt_summary_overall,
+           type_surg_received , radiation_yn , Rad_Reg_Rx_Mod_cat , chemo_yn ,
+           FIGOStage, insurance_status, facility_type1_cat,facility_size1, 
+           facility_docspecialty1, ClusterAssignment, splitby = ~ optimal_care, row_wise = TRUE, export = "tab3")
+
+t3a<-table1(ehrcensus19, race_eth_recode, nativity, age_dx_cat, trt_summary_overall,
+            type_surg_received , radiation_yn , Rad_Reg_Rx_Mod_cat , chemo_yn ,
+           FIGOStage, insurance_status, facility_type1_cat_1,facility_size1, 
+           facility_docspecialty1, optimal_care, splitby = ~ ClusterAssignment, row_wise = TRUE, export = "tab3a")
 
 
-##MAKE THIS MORE EFFICIENT BUT WILL KEEP LIKE THIS FOR NOW
-set.seed(1234)
-CrossTable(ehrcensus19$race_eth, ehrcensus19$ClusterAssignment_new, prop.c = F,  chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$nativity, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$age_dx_cat, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$insurance_status, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$Grade_cat, ehrcensus19$ClusterAssignment_new, prop.c = F,  chisq = T, digits = 3)
-CrossTable(ehrcensus19$RX_Summ_Surg_Primary_Site_c, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$trt_summary_overall, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$Rad_Reg_Rx_Mod_cat, ehrcensus19$ClusterAssignment_new, prop.c = F,chisq = T, digits = 3,simulate.p.value=TRUE)
-CrossTable(ehrcensus19$chemo_yn, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq =T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$FIGOStage, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$facility_type1_cat, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus19$facility_size1, ehrcensus19$ClusterAssignment_new, prop.c = F, chisq = T, digits = 3,simulate.p.value=TRUE)
-CrossTable(ehrcensus19$facility_docspecialty1, ehrcensus19$ClusterAssignment_new, prop.c = F, prop.t = F, chisq = T, digits = 3, expected = F,simulate.p.value=TRUE)
-CrossTable(ehrcensus19$optimal_care, ehrcensus19$ClusterAssignment_new, prop.c = F, prop.t = F, chisq = T, digits = 3, expected = F)
 
 
-#--------LOGISTIC REGRESSION MODELS BY SURVEY WAVE----------
+table4paper<-CreateTableOne(vars = variables,strata = "optimal_care", data = ehrcensus19, factorVars = variables, includeNA= T, addOverall = T )
+for (i in 1:length(variables)) {
+  sum = table4paper$CatTable[[2]][[i]]$freq + table4paper$CatTable[[3]][[i]]$freq
+  table4paper$CatTable[[2]][[i]]$percent = (table4paper$CatTable[[2]][[i]]$freq / sum)*100
+  table4paper$CatTable[[3]][[i]]$percent = (table4paper$CatTable[[3]][[i]]$freq / sum)*100
+}
+
+table4export<-print(table4paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+
+write.csv(table4export, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3.csv")
+#Export
+
+table4papera<-CreateTableOne(vars = variablesn,strata = "ClusterAssignment", data = ehrcensus19, factorVars = variablesn, includeNA= T, addOverall = T)
+for (i in 1:length(variablesn)) {
+  sum = table4papera$CatTable[[1]][[i]]$freq 
+  for(j in 2:7){
+    table4papera$CatTable[[j]][[i]]$percent = (table4papera$CatTable[[j]][[i]]$freq / sum)*100
+  }}
+table4exporta<-print(table4papera, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+write.csv(table4exporta, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3a.csv")
+
+
+
+
+
+
+#----------------------------------------------------------------------#
+#---------- LOGISTIC REGRESSION MODELS BY SURVEY WAVE----------------- #
+#----------------------------------------------------------------------#
 
 #####------ 2006-2010-----
 #We will model the probability of not receiving optimal care
-#I want cluster 4 to be reference
-ehrcensus10$ClusterAssignmentr <- relevel(ehrcensus10$ClusterAssignment , ref= 4)
+#Set cluster with largest n as the reference
+ehrcensus10$ClusterAssignmentr <- relevel(ehrcensus10$ClusterAssignment , ref= 6)
 ehrcensus10$notoptimal<- ifelse(ehrcensus10$optimal_care == "Not optimal", 1, 0)
 
-check<-ehrcensus10 %>% filter(cluster==4) %>% select("census_tract","NAME", "race_eth",  "optimal_care")
+#check<-ehrcensus10 %>% filter(cluster==4) %>% select("census_tract","NAME", "race_eth",  "optimal_care")
 
 #Unadjusted
 mod1<-glm(notoptimal ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus10)
 ##The odds of not receiving optimal care are 0.63 lower
 
-table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
-         RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
-         FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
-         facility_docspecialty1 + ClusterAssignment| optimal_care, data= ehrcensus10, overall=F, extra.col=list(`P-value`=pvalue))
-# 
-# #Fix p-values-- TBF
-# set.seed(1234)
-# variables<- c("optimal_care", "race_eth ","nativity", "age_dx_cat", "Grade_cat", "trt_summary_overall", 
-#                 "RX_Summ_Surg_Primary_Site_c", "radiation_yn", "Rad_Reg_Rx_Mod_cat" , "chemo_yn", 
-#                 "FIGOStage", "insurance_status", "facility_type1_cat", "facility_size1",
-#                 "facility_docspecialty1", "ClusterAssignment")
-# p_values_check<-function(variables, dataset){
-#   pvalues<-matrix(0, nrow = length(variables), ncol = 3)
-#   colnames(pvalues)<-c("varname", "chisq", "fisher")
-#   r<-1
-#   for( v in variables){
-#     tests<-CrossTable(dataset$v, dataset$variables[1], prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
-#     chiq<-tests$chisq$p.value
-#     fisher<-tests$fisher.ts$p.value
-#     pvalues[r,]<- c(v, chiq, fisher)
-#     r<-r+1
-# }
-# 
-# }
-set.seed(1234)
-CrossTable(ehrcensus10$race_eth, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$nativity, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$age_dx_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$Grade_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$trt_summary_overall, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$RX_Summ_Surg_Primary_Site_c, ehrcensus10$optimal_care, prop.c = F,  chisq = T, fisher = T, digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$Rad_Reg_Rx_Mod_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$radiation_yn, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$chemo_yn, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$insurance_status, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3, simulate.p.value=TRUE)
-CrossTable(ehrcensus10$facility_type1_cat, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3,simulate.p.value=TRUE)
-CrossTable(ehrcensus10$facility_size1, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3)
-CrossTable(ehrcensus10$ClusterAssignment, ehrcensus10$optimal_care, prop.c = F,  chisq = T,  digits = 3)
-
-
-
 #Adjust for socio-demographic characteristics
-#Recode- race/eth---- not merge other wiht missing
-ehrcensus10<- ehrcensus10 %>% mutate( race_eth_recode = case_when(
-  race_eth %in% c("Non-Hispanic Asian", "Other", "Missing/unknown") ~ 4,
-  race_eth == "Non-Hispanic White" ~ 1,
-  race_eth == "Non-Hispanic Black" ~ 2,
-  race_eth == "Hispanic" ~ 3,
-))
-                          
-ehrcensus10$race_eth_recode<- factor(ehrcensus10$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
-  
-
-mod2<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus10)
+mod2<- glm(notoptimal ~ ClusterAssignmentr  + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod2)
+#Based on distribution of age by census tracts, population in census tracts in cluster 4 are older-- highest median age compared to other clusters
 #Facility information 
-mod3<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus10)
+mod3<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat_1,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod3)
 #Adjust for  tumor info
 mod4<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod4)
 
 #Full model
-mod5<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus10)
+mod5<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod5)
+
+
+#mod5a<- glm(optimal_care ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus10)
+#Full model with interaction between race/eth and cluster-- small cell counts -- i dont thin this is feasible
+#unstable estimates of model parameters, including interaction terms.  large standard errors or inflated estimates of effect sizes.
+#mod6<- glm(notoptimal ~ ClusterAssignmentr*race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus10)
+#summary(mod6)
+
 
 #Nice output
 #https://cran.r-project.org/web/packages/sjPlot/vignettes/tab_model_estimates.html
@@ -401,58 +371,35 @@ library(sjmisc)
 library(sjlabelled)
 pred.labels <-c(paste0("NSES:Cluster", sep= " ", 1:9),"YearDx:2006","YearDx:2007", "YearDx:2008", "YearDx:2009","YearDx:2010","NHW",
                  "NHB", "Hispanic", "Other", "Age:<50","Age: 50-64", "Age:65+","Insurance:Private", "Insurance:Medicare","Insurance:Public", "Insurance: Other", "Insurance:not insured",
-                 "Facility: academic", "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Teaching", "Facility: Unknown","Size:small", "Size:Medium",
-                "Size: Large","Doc:IntMed", "Doc: Hematology", "Doc: Gyno", "Doc:Oncology", "Doc: Rad", "Doc:missing", "Doc:other", "Stage: I","Stage:II", "Stage:III", "Stage: IV", "Grade:I","Grade:II", "Grade:III")
+                 "Facility: academic", "Facility: Community", "Facility: Specialty", "Facility: Teaching",  "Stage: I","Stage:II", "Stage:III", "Stage: IV", "Grade:I","Grade:II", "Grade:III")
             
-pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1:3, 5:9)),"YearDx:2007", "YearDx:2008", "YearDx:2009","YearDx:2010",
+pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1:5, 7:9)),"YearDx:2007", "YearDx:2008", "YearDx:2009","YearDx:2010",
                 "NHB", "Hispanic", "Other","Age: 50-64", "Age:65+","Insurance:Medicare","Insurance:Public", "Insurance: Other", "Insurance:not insured",
-                 "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Unknown","Size:Medium",
-                "Size: Large", "Doc: Hematology", "Doc: Gyno", "Doc:Oncology", "Doc: Rad", "Doc:missing", "Doc:other", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
+                 "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
 
 tab_model(mod1, mod2, mod3, mod4, mod5,  p.style = "stars", pred.labels =  pred.labels2, dv.labels = paste0("Model", sep=" ", 1:5),
           string.pred = "Coeffcient",
-          string.ci = "95% CI", show.intercept = F)
+          string.ci = "95% CI", show.intercept = F, digits = 3)
 
 
 #Plot models: https://strengejacke.github.io/sjPlot/articles/blackwhitefigures.html
 # set variable label for response
 set_label(ehrcensus10$notoptimal) <- "Did not receive optimal care"
-plot_models(mod1, mod5)
-
-
+plot_models(mod5, vline.color = "black",legend.title = "", m.labels = "Fully adjusted")
 
 #####------ 2011-2015-----
-
-ehrcensus15$ClusterAssignmentr <- relevel(ehrcensus15$ClusterAssignment_new , ref= 2)
+ehrcensus15$ClusterAssignmentr <- relevel(ehrcensus15$ClusterAssignment , ref= 6)
 ehrcensus15$notoptimal<- ifelse(ehrcensus15$optimal_care == "Not optimal", 1, 0)
 
 #Unadjusted
 mod1_2<-glm(notoptimal ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus15)
 ##The odds of not receiving optimal care are 0.63 lower
 
-table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
-         RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
-         FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
-         facility_docspecialty1 + ClusterAssignment_new| optimal_care, data= ehrcensus15, overall=F, extra.col=list(`P-value`=pvalue))
-
-
-
 #Adjust for socio-demographic characteristics
-#Recode- race/eth
-ehrcensus15<- ehrcensus15 %>% mutate( race_eth_recode = case_when(
-  race_eth %in% c("Non-Hispanic Asian", "Other", "Missing/unknown") ~ 4,
-  race_eth == "Non-Hispanic White" ~ 1,
-  race_eth == "Non-Hispanic Black" ~ 2,
-  race_eth == "Hispanic" ~ 3,
-))
-
-ehrcensus15$race_eth_recode<- factor(ehrcensus15$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
-
-
 mod2_2<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus15)
 summary(mod2_2)
 #Facility information 
-mod3_2<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus15)
+mod3_2<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat_1,family=binomial(link='logit'),data= ehrcensus15)
 summary(mod3_2)
 #Adjust for  tumor info
 mod4_2<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus15)
@@ -460,54 +407,36 @@ summary(mod4_2)
 
 #Full model
 mod5_2<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
-           + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus15)
+           + facility_type1_cat_1,family=binomial(link='logit'),data= ehrcensus15)
 summary(mod5_2)
 
-pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1, 3:8)),"YearDx:2012", "YearDx:2013", "YearDx:2014",
+pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1:5, 7:8)),"YearDx:2012", "YearDx:2013", "YearDx:2014",
                 "NHB", "Hispanic", "Other","Age: 50-64", "Age:65+","Insurance:Medicare","Insurance:Public", "Insurance: Other", "Insurance:not insured",
-                "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Unknown","Size:Medium",
-                "Size: Large", "Doc: Hematology", "Doc: Gyno", "Doc:Oncology", "Doc: Rad", "Doc:missing", "Doc:other", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
+                "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
 
-tab_model(mod1_2, mod2_2, mod3_2, mod4_2, mod5_2,  p.style = "stars", pred.labels =  pred.labels2, dv.labels = paste0("Model", sep=" ", 1:5),
+tab_model(mod1_2, mod2_2, mod3_2, mod4_2, mod5_2, pred.labels = pred.labels2, p.style = "stars", dv.labels = paste0("Model", sep=" ", 1:5),
           string.pred = "Coeffcient",
           string.ci = "95% CI", show.intercept = F)
 
 
-set_label(ehrcensus15$notoptimal) <- "Did not receive optimal care"
-plot_models(mod1_2, mod5_2)
+#set_label(ehrcensus15$notoptimal) <- "Did not receive optimal care"
+#plot_models(mod5, mod5_2)
 
 #####------ 2015-2019-----
-
-ehrcensus19$ClusterAssignmentr <- relevel(ehrcensus19$ClusterAssignment_new , ref= 4)
+ehrcensus19$ClusterAssignment<-factor(ehrcensus19$ClusterAssignment, levels = c(1,2,3,5,6,8), labels= c("cluster1","cluster2", "cluster3", "cluster5",
+                                                                                                       "cluster6", "cluster8"))
+ehrcensus19$ClusterAssignmentr <- relevel(ehrcensus19$ClusterAssignment , ref= 5)
 ehrcensus19$notoptimal<- ifelse(ehrcensus19$optimal_care == "Not optimal", 1, 0)
 
 #Unadjusted
 mod1_3<-glm(notoptimal ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus19)
 ##The odds of not receiving optimal care are 0.63 lower
 
-table1(~ race_eth + nativity  +  age_dx_cat  + Grade_cat + trt_summary_overall+ 
-         RX_Summ_Surg_Primary_Site_c + radiation_yn + Rad_Reg_Rx_Mod_cat + chemo_yn + 
-         FIGOStage + insurance_status + facility_type1_cat+ facility_size1  +  
-         facility_docspecialty1 + ClusterAssignment_new| optimal_care, data= ehrcensus19, overall=F, extra.col=list(`P-value`=pvalue))
-
-
-
 #Adjust for socio-demographic characteristics
-#Recode- race/eth
-ehrcensus19<- ehrcensus19 %>% mutate( race_eth_recode = case_when(
-  race_eth %in% c("Non-Hispanic Asian", "Other", "Missing/unknown") ~ 4,
-  race_eth == "Non-Hispanic White" ~ 1,
-  race_eth == "Non-Hispanic Black" ~ 2,
-  race_eth == "Hispanic" ~ 3,
-))
-
-ehrcensus19$race_eth_recode<- factor(ehrcensus19$race_eth_recode, levels = 1:4, labels = c("Non-Hispanic White", "Non-Hispanic Black","Hispanic", "Other"))  
-
-
 mod2_3<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus19)
 summary(mod2_3)
 #Facility information 
-mod3_3<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat + facility_size1 +  facility_docspecialty1,family=binomial(link='logit'),data= ehrcensus19)
+mod3_3<-glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + facility_type1_cat_1,family=binomial(link='logit'),data= ehrcensus19)
 summary(mod3_3)
 #Adjust for  tumor info
 mod4_3<- glm(notoptimal ~ ClusterAssignmentr + as.factor(yeardx) + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus19)
@@ -515,13 +444,12 @@ summary(mod4_3)
 
 #Full model
 mod5_3<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
-             + facility_type1_cat + facility_size1 +  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus19)
+             + facility_type1_cat_1,family=binomial(link='logit'),data= ehrcensus19)
 summary(mod5_3)
 
-pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1:3, 5:7)),"YearDx:2016", "YearDx:2017",
+pred.labels2<-c(paste0("NSES:Cluster", sep= " ", c(1,2,3,5,8)),"YearDx:2016", "YearDx:2017",
                 "NHB", "Hispanic", "Other","Age: 50-64", "Age:65+","Insurance:Medicare","Insurance:Public", "Insurance: Other", "Insurance:not insured",
-                "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Facility: Unknown","Size:Medium",
-                "Size: Large", "Doc: Hematology", "Doc: Gyno", "Doc:Oncology", "Doc: Rad", "Doc:missing", "Doc:other", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
+                "Facility: Community", "Facility: Specialty", "Facility: Teaching", "Stage:II", "Stage:III", "Stage: IV","Grade:II", "Grade:III")
 
 tab_model(mod1_3, mod2_3, mod3_3, mod4_3, mod5_3,  p.style = "stars", pred.labels =  pred.labels2, dv.labels = paste0("Model", sep=" ", 1:5),
           string.pred = "Coeffcient",
@@ -530,24 +458,41 @@ tab_model(mod1_3, mod2_3, mod3_3, mod4_3, mod5_3,  p.style = "stars", pred.label
 
 
 
-#Using cluster colors-- unadjusted
-mod1a<- glm(notoptimal ~ cluster_color,family=binomial(link='logit'), data= ehrcensus10)
-summary(mod1a)
-
-mod1b<- glm(notoptimal ~ cluster_color,family=binomial(link='logit'), data= ehrcensus15)
-summary(mod1b)
-
-mod1c<- glm(notoptimal ~ cluster_color, family=binomial(link='logit'),data= ehrcensus19)
-summary(mod1c)
-
-tab_model(mod1a, mod1b, mod1c, p.style = "stars", dv.labels = paste0("ACS", sep=" ", 1:3),
-          string.pred = "Coeffcient",
-          string.ci = "95% CI", show.intercept = F)
 
 
 
-#Crosstabs
-
-table(dat10$cluster_color, dat15$cluster_color)
 
 
+# 
+# #Using cluster colors-- unadjusted
+# mod1a<- glm(notoptimal ~ cluster_color,family=binomial(link='logit'), data= ehrcensus10)
+# summary(mod1a)
+# 
+# mod1b<- glm(notoptimal ~ cluster_color,family=binomial(link='logit'), data= ehrcensus15)
+# summary(mod1b)
+# 
+# mod1c<- glm(notoptimal ~ cluster_color, family=binomial(link='logit'),data= ehrcensus19)
+# summary(mod1c)
+# 
+# tab_model(mod1a, mod1b, mod1c, p.style = "stars", dv.labels = paste0("ACS", sep=" ", 1:3),
+#           string.pred = "Coeffcient",
+#           string.ci = "95% CI", show.intercept = F)
+# 
+# 
+# 
+# #Crosstabs
+# table(dat10$cluster_color, dat15$cluster_color)
+# 
+# 
+# #Sanity checks
+# ehrdata_countyfips$notoptimal<- ifelse(ehrdata_countyfips$optimal_care == "Not optimal", 1, 0)
+# moda<- glm(optimal_care ~ race_eth_recode + as.factor(yeardx)  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  
+#              + facility_type1_cat_1,family=binomial(link='logit'),data= ehrdata_countyfips)
+# summary(moda)
+# 
+# moda1<- glm(notoptimal ~  FIGOStage,family=binomial(link='logit'),data= ehrdata_countyfips)
+# summary(moda1)
+# exp(coef(moda1))
+# 
+# 
+# CrossTable(ehrdata_countyfips$FIGOStage,ehrdata_countyfips$optimal_care, prop.c = F,  chisq = T,  digits = 3)
