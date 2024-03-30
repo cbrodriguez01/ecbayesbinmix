@@ -53,15 +53,15 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, bu
 #censusdata_bin <- readRDS("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/censusdata_bin.rds")
 
 #---FASRC
-
-censusdata_bin <- readRDS("./censusdata_bin.rds")
+#ADDED ON 3/29/24-- 16 VARIABLES NOW
+censusdata_bin <- readRDS("./censusdata_bin_rownames_032924.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
 
 #INCREASE ITERATIONS
 Kmax<-50
 gamma<-rep((1/Kmax),Kmax) #to induce sparsity
-#We want 15,0000 iterations and 5000 burn-in
+#We want 15,000 iterations and 5000 burn-in
 #INCREASE ITERATIONS AND BURN-IN-- HAVE NOT RUN YET AS OF 3/12/24
 #m<-2000 
 #burnin<-m/2
@@ -87,6 +87,6 @@ for (i in 1:length(datasets)){
 
 
 #Output will include 3 lists of length 7
-saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_3.12.24.rds")
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_3.29.24.rds")
 
 

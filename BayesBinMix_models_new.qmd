@@ -118,6 +118,26 @@ stats<-cbind(summary(res_acs10$parameters.ecr.mcmc)$statistics[,c(1,2)],
 tail(round(stats, 2), mapK) %>% kable()
 ```
 
+```{r}
+#Find index of highest probability
+highest_index<-function(vec){
+  s<-length(vec)
+  vec1<-order(vec)
+ return(vec1[s])
+}
+
+#Find second highest probability
+second_highest<-function(vec){
+  vec1<-sort(vec, decreasing = T)
+ return(vec1[2])
+}
+second_highest_index<-function(vec){
+  s<-length(vec)
+  vec1<-order(vec)
+ return(vec1[s-1])
+}
+```
+
 #### Age and Race/Ethnicity Distribution of the census tracts by cluster assignment
 
 ```{r}
@@ -126,23 +146,25 @@ mapK<-Mode(res_acs10$K.mcmc)[1]  #tells you mapK
 classificationprobs_10<-res_acs10$classificationProbabilities.ecr
 # Add cluster classification based on maximum probability 
 maxProb<-apply(classificationprobs_10, 1, max)
-ClusterAssignment<-res_acs10$clusterMembershipPerMethod[,2]
-#ClusterAssignment_ecr_temp<-apply(classificationprobs_10,1, highest_index)
+ClusterAssignment<-res_acs10$clusterMembershipPerMethod[,1]
+ClusterAssignment_ecr_temp<-apply(classificationprobs_10,1, highest_index)
 
 
 classificationprobs_10$ClusterAssignment<-ClusterAssignment
 classificationprobs_10$maxProb<-maxProb
-#classificationprobs_10$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
+classificationprobs_10$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
 
 #head(classificationprobs_10)
-#table(classificationprobs_10$ClusterAssignment, #classificationprobs_10$ClusterAssignment_ecr_temp)
-#classificationprobs_10 %>% filter(ClusterAssignment_ecr_temp != ClusterAssignment)
+table(classificationprobs_10$ClusterAssignment,classificationprobs_10$ClusterAssignment_ecr_temp)
+classificationprobs_10 %>% filter(ClusterAssignment_ecr_temp != ClusterAssignment)
 ##This is odd-- my understanding is that these algorithms assigned observations to clusters probabilistically based on the highest posterior probabilities of cluster assignments given the observed data.
 
 #Permutation that is consistent across MCMC samples?
 
 #Prep Data
 classificationprobs_10$GEOID<-row.names(censusdata_bin$acs5_2010_bin)
+fuzzygeoids_10<-classificationprobs_10 %>% filter(ClusterAssignment_ecr_temp != ClusterAssignment) %>% select(GEOID)
+
 
 classificationprobs_10$ClusterAssignment<- factor(classificationprobs_10$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
 
@@ -237,24 +259,6 @@ classificationprobs_15<-res_acs15$classificationProbabilities.ecr
 # Add cluster classification based on maximum probability 
 maxProb<-apply(classificationprobs_15, 1, max)
 
-#Find index of highest probability
-highest_index<-function(vec){
-  s<-length(vec)
-  vec1<-order(vec)
- return(vec1[s])
-}
-
-#Find second highest probability
-second_highest<-function(vec){
-  vec1<-sort(vec, decreasing = T)
- return(vec1[2])
-}
-second_highest_index<-function(vec){
-  s<-length(vec)
-  vec1<-order(vec)
- return(vec1[s-1])
-}
-
 maxProb2<-apply(classificationprobs_15, 1, second_highest)
 ClusterAssignment_new <-apply(classificationprobs_15, 1, second_highest_index)
 ClusterAssignment_ecr_temp<-apply(classificationprobs_15,1, highest_index)
@@ -266,6 +270,8 @@ classificationprobs_15$maxProb2<-maxProb2
 classificationprobs_15$temp<-ClusterAssignment_new
 
 table(classificationprobs_15$ClusterAssignment_ecr_temp, classificationprobs_15$ClusterAssignment_ecr)
+
+fuzzygeoids_15<-classificationprobs_15%>% filter(ClusterAssignment_ecr_temp != ClusterAssignment_ecr) %>% select(GEOID)
 
 
 #Output probabilities
@@ -408,6 +414,10 @@ classificationprobs_19$maxProb2<-maxProb2
 classificationprobs_19$ClusterAssignment_ecr<-res_acs19$clusterMembershipPerMethod[,2]
 classificationprobs_19$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
 classificationprobs_19$temp<-ClusterAssignment_new 
+
+table(classificationprobs_19$ClusterAssignment_ecr_temp, classificationprobs_19$ClusterAssignment_ecr)
+
+fuzzygeoids_19<-classificationprobs_19%>% filter(ClusterAssignment_ecr_temp != ClusterAssignment_ecr) %>% select(GEOID)
 
 
 #Output probabilities
