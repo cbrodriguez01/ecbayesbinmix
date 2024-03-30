@@ -5,7 +5,7 @@ library(foreach)
 library(label.switching)
 library(doParallel)
 library(coda)
-#Last edited: 3/10/2024
+#Last edited: 3/30/2024
 
 #Run models-- edited to change the parameter of the Dirichlet distribution to 1/Kmax (2/10/24)
 
@@ -53,8 +53,9 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, bu
 #censusdata_bin <- readRDS("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/censusdata_bin.rds")
 
 #---FASRC
-#ADDED ON 3/29/24-- 16 VARIABLES NOW
-censusdata_bin <- readRDS("./censusdata_bin_rownames_032924.rds")
+#ADDED ON 3/30/24-- running model with race/eth-- 18 vars
+#3/29 16 vars ran model with minority status variable
+censusdata_bin <- readRDS("./censusdata_bin_raceeth_033024.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
 
@@ -87,6 +88,6 @@ for (i in 1:length(datasets)){
 
 
 #Output will include 3 lists of length 7
-saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_3.29.24.rds")
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_raceeth_3.30.24.rds")
 
 

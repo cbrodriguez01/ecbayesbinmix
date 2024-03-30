@@ -4,8 +4,8 @@
 #SBATCH -p shared 
 #SBATCH --mem=64000 
 #SBATCH -t 0-12:00:00 
-#SBATCH -o myoutput_newmod_3.29_%j.out 
-#SBATCH -e myerrors_newmod_3.29_%j.err  
+#SBATCH -o myoutput_newmod_raceeth_3.30_%j.out 
+#SBATCH -e myerrors_newmod_raceeth_3.30_%j.err  
 #SBATCH --mail-type=END  
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu  
 
