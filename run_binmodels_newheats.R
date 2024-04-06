@@ -5,7 +5,7 @@ library(foreach)
 library(label.switching)
 library(doParallel)
 library(coda)
-#Last edited: 3/30/2024
+#Last edited: 4/5/24
 
 #Run models-- edited to change the parameter of the Dirichlet distribution to 1/Kmax (2/10/24)
 
@@ -28,7 +28,6 @@ library(coda)
 
 run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, burnin){
   #start.time <- Sys.time()
-  #heats <- seq(1, 0.4, length = nChains)
   heats <- seq(1, 0.2, length = nChains)
   
   #Part of function->outPrefix:The name of the produced outut folder. An error is thrown if the directory exists.Add date to fix this issue
@@ -48,15 +47,9 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, bu
   return(out.list)
 }
 
-#---DFCI server
-#censusdata_bin <- readRDS("/homes6/carmen/Other projects/ecbayesbinmix/censusdata_bin.rds")
-#---My mac
-#censusdata_bin <- readRDS("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/censusdata_bin.rds")
-
-#---FASRC
 #ADDED ON 3/30/24-- running model with race/eth-- 18 vars
 #3/29 16 vars ran model with minority status variable
-censusdata_bin <- readRDS("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/censusdata_bin_raceeth_033024.rds")
+censusdata_bin <- readRDS("./censusdata_bin_raceeth_033024.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
 
@@ -64,23 +57,22 @@ datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(ce
 Kmax<-50
 gamma<-rep((1/Kmax),Kmax) #to induce sparsity
 #We want 15,000 iterations and 5000 burn-in
-#INCREASE ITERATIONS AND BURN-IN-- HAVE NOT RUN YET AS OF 3/12/24
+#INCREASE ITERATIONS AND BURN-IN-- 
 #m<-2000 
 #burnin<-m/2
 #2500 ; 1000
-m<-20
-burnin<-2
+m<-2000
+burnin<-1000
 nChains<-6
 
 #3/10/24 added a burn in of 500 (technically 5000) and we changed gamma = 1/kmax, and set Kmax = 50
 #wd<-"/homes6/carmen/Other projects/"
 
-#wd<-"/n/home03/crodriguezcabrera/BayesBinMix_Project/"
-wd<-"/Users/carmenrodriguez/Desktop/temp/"
-acsid<- c("acs10","acs15", "acs19")
-
+wd<-"/n/home03/crodriguezcabrera/BayesBinMix_Project/"
+acsid<- c("acs10","acs15")
+#length(datasets)
 res_all<-list()
-for (i in 1:length(datasets)){
+for (i in 1:2){
     model.res<-run_models(dataset = datasets[[acsid[i]]], Kmax = Kmax,gamma=gamma, 
                           nChains= nChains, m= m, ClusterPrior, wd = wd, 
                           acsid = acsid[i], burnin= burnin)
@@ -94,8 +86,8 @@ for (i in 1:length(datasets)){
 
 
 
-#Output will include 3 lists of length 7
-saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACSall_raceeth_3.30.24.rds")
+#Output will include 2 lists of length 7
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACS2_raceeth_4.6.24.rds")
 
 
 

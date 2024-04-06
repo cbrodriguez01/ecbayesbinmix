@@ -4,8 +4,8 @@
 #SBATCH -p shared 
 #SBATCH --mem=64000 
 #SBATCH -t 0-12:00:00 
-#SBATCH -o myoutput_newmod_raceeth_3.30_%j.out 
-#SBATCH -e myerrors_newmod_raceeth_3.30_%j.err  
+#SBATCH -o myoutput_newmod_raceeth_4.6_%j.out 
+#SBATCH -e myerrors_newmod_raceeth_4.6_%j.err  
 #SBATCH --mail-type=END  
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu  
 
@@ -17,4 +17,4 @@ export R_LIBS_USER=$HOME/apps/R_4.3.1:$R_LIBS_USER
 cd $HOME/ecbayesbinmix/
 
 #Run the R script
-Rscript run_binmodels_newgamma.R
+Rscript run_binmodels_newheats.R
