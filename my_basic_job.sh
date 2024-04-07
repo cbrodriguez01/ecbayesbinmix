@@ -3,11 +3,12 @@
 #SBATCH -c 5  
 #SBATCH -p shared 
 #SBATCH --mem=64000 
-#SBATCH -t 0-12:00:00 
-#SBATCH -o myoutput_newmod_raceeth_4.6_%j.out 
-#SBATCH -e myerrors_newmod_raceeth_4.6_%j.err  
-#SBATCH --mail-type=END  
-#SBATCH --mail-user=crodriguezcabrera@g.harvard.edu  
+#SBATCH -t 0-14:00:00 
+#SBATCH -o myoutput_tuningheats_4.7_%j.out 
+#SBATCH -e myerrors_tuningheats_4.7_%j.err  
+#SBATCH --mail-type=BEGIN,END,FAIL  # Mail notifications
+#SBATCH --mail-user=crodriguezcabrera@g.harvard.edu   # Account to email
+
 
 #Load R and the environment
 module load R/4.3.1-fasrc01
@@ -17,4 +18,4 @@ export R_LIBS_USER=$HOME/apps/R_4.3.1:$R_LIBS_USER
 cd $HOME/ecbayesbinmix/
 
 #Run the R script
-Rscript run_binmodels_newheats.R
+Rscript TroubleshootingHeats.R
