@@ -21,7 +21,6 @@ library(coda)
 #' @param acsid which dataset, character; options: acs10, acs15, acs19
 #' 
 #' @returns  a named list containing model results 
-
 run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, burnin, heats, heatsid){
   
   #Part of function->outPrefix:The name of the produced outut folder. An error is thrown if the directory exists.Add date to fix this issue
@@ -41,9 +40,10 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, bu
 }
 
 #Tuning heats for achieving reasonable acceptance rates
-censusdata_bin <- readRDS("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/censusdata_bin_raceeth_033024.rds")
+censusdata_bin <- readRDS("./censusdata_bin_raceeth_033024.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
+
 nChains<- 5
 heatslist<- list(seq(1, 0.1, length = nChains), seq(1, 0.2, length = nChains),
                  seq(1, 0.3, length = nChains), seq(1, 0.4, length = nChains))
@@ -60,13 +60,13 @@ res_all<-list()
 swap_rate<-matrix(1, nrow = 4 , ncol= 3)
 for (h in 1:length(heatslist)){
 for (i in 1:length(datasets)){
-  model.res<-run_models(dataset = datasets[[acsid[3]]], Kmax = Kmax,gamma=gamma, 
+  model.res<-run_models(dataset = datasets[[acsid[i]]], Kmax = Kmax,gamma=gamma, 
                         nChains= nChains, m= m, ClusterPrior, wd = wd, 
-                        acsid = acsid[3], burnin= burnin, heats = heatslist[[heatsid[h]]], heatsid = heatsid[h])
+                        acsid = acsid[i], burnin= burnin, heats = heatslist[[heatsid[h]]], heatsid = heatsid[h])
   
-  print(model.res[[i]]$chainInfo)
+  #print(model.res[[i]]$chainInfo)
   #Keep swap acceptance rate
-  swap_rate[h, i]<-model.res[[i]]$chainInfo[2]
+  swap_rate[h, i]<-model.res[[1]]$chainInfo[2]
   
   res_all<-append(res_all, model.res)
 }
@@ -77,7 +77,7 @@ output<- list(res_all,  "sar"=swap_rate)
 
 
 #SAVE OUTPUT
-saveRDS(output, "/n/home03/crodriguezcabrera/ecbayesbinmix/tuningheatsvec_4.7.24.rds")
+saveRDS(output, "/n/home03/crodriguezcabrera/ecbayesbinmix/tuningheatsvec_4.10.24.rds")
 
 
 
