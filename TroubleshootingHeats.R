@@ -82,7 +82,8 @@ saveRDS(output, "/n/home03/crodriguezcabrera/ecbayesbinmix/tuningheatsvec_4.10.2
 
 
 
-
-
+### CHECK OUTPUT
+tuning<-readRDS("./tuningheatsvec_4.10.24.rds")
+tuning$sar
 
 
