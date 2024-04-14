@@ -50,8 +50,10 @@ generateHeats<-function(deltatempvec, npchains){
 
 nChains<- 4
 #heatsid is the temperature ID to see which heated chains to use
-temps<- c(0.05, 0.1, 0.15, 0.2)
-heatslist<-generateHeats(temps, nChains)
+#temps<- c(0.05, 0.1, 0.15, 0.2)
+#It seems smaller deltaT work better for these datasets
+temps1<-c(0.01,0.025)
+heatslist<-generateHeats(temps1, nChains)
 
 Kmax<-50
 gamma<-rep((1/Kmax),Kmax)
@@ -78,15 +80,18 @@ for (i in 1:length(datasets)){
 }
 }
 
-output<- list(res_all,  "sar"=swap_rate)
+output<- list(res_all,  "sar2"=swap_rate)
 
 
 #SAVE OUTPUT
-saveRDS(output, "/n/home03/crodriguezcabrera/ecbayesbinmix/tuningheatsvec_4.13.24.rds")
+saveRDS(output, "/n/home03/crodriguezcabrera/ecbayesbinmix/tuningheatsvec_4.14.24.rds")
 
 
 
+#checks<-readRDS("./tuningheatsvec_4.13.24.rds")
+#checks$sar #it seems that for these datasets a smaller deltaT works better
 
+#colnames(checks$sar)<-c("2010", "2015", "2019")
 
 # Check if mixing well-- for heats vector 1
 
