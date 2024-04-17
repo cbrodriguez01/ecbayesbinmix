@@ -25,28 +25,17 @@ second_highest_index<-function(vec){
   return(vec1[s-1])
 }
 
-out_ethmin<-readRDS("./ACSall_3.29.24.rds")
-out_raceet<-readRDS("./ACSall_raceeth_3.30.24.rds")
+
+out_ht<-readRDS("./tuningheatsvec_4.14.24.rds")
 
 # Firstly, the model with ethnic minority resulted in 8 clusters for each dataset, while the model with prop race-eth resulted in 9,8,8 cluster
-acs10_1<-out_ethmin$res_acs10_50
-acs15_1<-out_ethmin$res_acs15_50
-acs19_1<-out_ethmin$res_acs19_50
+res_acs10_ht1<-res_all[[1]][["res_acs10_deltatemp1"]]
+res_acs15_ht1<-res_all[[1]][["res_acs15_deltatemp1"]]
+res_acs19_ht1<-res_all[[1]][["res_acs19_deltatemp1"]]
 
-
-acs10_2<-out_raceet$res_acs10_50
-acs15_2<-out_raceet$res_acs15_50
-acs19_2<-out_raceet$res_acs19_50
-
-
-#First we will look at the mixing weights to check for any issues
-print(acs10_1)
-print(acs15_1)
-print(acs19_1)
-
-print(acs10_2)
-print(acs15_2)
-print(acs19_2)
+res_acs10_ht2<-res_all[[1]][["res_acs10_deltatemp2"]]
+res_acs15_ht2<-res_all[[1]][["res_acs15_deltatemp2"]]
+res_acs19_ht2<-res_all[[1]][["res_acs19_deltatemp2"]]
 
 #####-------- ACS 2006-2010----------------------#######
 #Mixing weights distributions
@@ -61,10 +50,10 @@ round(tail(cbind(summary(acs10_2$parameters.ecr.mcmc)$statistics[,c(1,2)],
       summary(acs10_2$parameters.ecr.mcmc)$quantiles[,c(1,5)]), 9),4)
 
 #Trace plots and histogram of theta_kj, p_k for 2nd component of this model to explore, and the minority eth variable
-summary(acs10_2$parameters.ecr.mcmc)
+summary(res_acs15_ht2$parameters.ecr.mcmc)
 mat1 <- matrix(c(1:4), byrow = TRUE, ncol = 2)
 layout(mat1, widths = rep(c(2, 1), 2), heights = rep(1, 4))
-mcmcSubset <- acs10_2$parameters.ecr.mcmc[ , c("theta.2.12", "p.2")]
+mcmcSubset <- res_acs15_ht2$parameters.ecr.mcmc[ , c("p.6", "p.1")]
 plot(mcmcSubset, auto.layout = FALSE, ask = FALSE, col = "gray40")
 
 

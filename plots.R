@@ -41,23 +41,18 @@ preparedat_fig<-function(reslst,mapK, sesvars){
   
   # Group variables
   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
-    NSES_VARS %in% c("Two People Per Room","Lack of complete Plumbing", "No Vehicle","Owner", "Renter", "Female Household") ~ 1,
-    NSES_VARS %in% c(">= Bacherlor's Degree", "< High School", ">= High School") ~ 2,
-    NSES_VARS %in% c("Unemployment","White Collar Occupation") ~ 4,
-    NSES_VARS %in% c("Median Household Income","Below Poverty Line","SNAP Benefits") ~ 3,))
+    NSES_VARS %in% c("Crowded housing","Lack complete plumbing", "No vehicle","Owner-occupied","Renter-occupied", "Female household") ~ 1,
+    NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 2,
+    NSES_VARS %in% c("Unemployment","Working class") ~ 4,
+    NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits") ~ 3,
+    NSES_VARS %in% c("Hispanic or Latino", "NH Black", "NH Asian", "Limited EN Proficiency") ~ 5,))
   
   
-  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Household", "Education", "Income", "Occupation"))
-  #print(table(prob_est_long$NSES_group))
-  
-  
+  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:5, labels = c("Household", "Education", "Income", "Occupation", "Ethnic Minorities and Language"))
+
+
   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
     
-    #factor(dat_10$NSES_VARS, levels = c("Two People Per Room","Lack of complete Plumbing","No Vehicle",
-#                                                                "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
- #                                                               "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment",
-  #                                                              "White Collar Occupation"))
-  
   return(prob_est_long)
 }
 
@@ -106,10 +101,7 @@ plot_thetakj_indiv<-function(prob_est_long,mapK, color_palette, fig_title){
 
 
 plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
-  
-  #scalediscrete<-c("Two People Per Room","Lack of complete Plumbing","No Vehicle", "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
-     #              "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment", "White Collar Occupation")
-  
+
   # Generate plot
   prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
     geom_col()  +
@@ -117,7 +109,7 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
     scale_fill_manual(values = color_palette) + 
     labs(title = fig_title, x= "",
          y = "Probability",
-         fill = "Neighborhood SES variables") +
+         fill = "Neighborhood SES Variables") +
     theme(text = element_text(size = 12),
           axis.text.x = element_text(size=6.8, angle=45, vjust = 0.75, hjust = 0.88), 
           axis.title.x = element_text(size = 8, color = "black", face = "bold"),
@@ -134,9 +126,6 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
 
 plot_thetakj_group_flipped<-function(prob_est_long,mapK, color_palette, fig_title){
   
-  #scalediscrete<-c("Two People Per Room","Lack of complete Plumbing","No Vehicle", "Owner", "Renter","Female Household", ">= Bacherlor's Degree", "< High School",
-   #                "Median Household Income", "Below Poverty Line", "SNAP Benefits", "Unemployment", "White Collar Occupation")
-  
   # Generate plot
   prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
     geom_col() +
@@ -145,7 +134,7 @@ plot_thetakj_group_flipped<-function(prob_est_long,mapK, color_palette, fig_titl
     scale_fill_manual(values = color_palette) + 
     labs(title = fig_title, x= "",  
          y = "Probability",
-         fill = "Neighborhood SES variables") +
+         fill = "Neighborhood SES Variables") +
     theme(text = element_text(size = 12),
           axis.text.x = element_text(size=8), 
           axis.title.x = element_text(size = 5, color = "black", face = "bold"),
