@@ -111,7 +111,7 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
          y = "Probability",
          fill = "Neighborhood SES Variables") +
     theme(text = element_text(size = 12),
-          axis.text.x = element_text(size=6.8, angle=45, vjust = 0.75, hjust = 0.88), 
+          axis.text.x = element_text(size=8.5, angle=45, vjust = 0.75, hjust = 0.88), 
           axis.title.x = element_text(size = 8, color = "black", face = "bold"),
           axis.title.y = element_text(size = 8, color = "black", face = "bold"),
           #axis.ticks = element_blank(),
@@ -122,7 +122,7 @@ plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
   
   
 }
-
+#6.8
 
 plot_thetakj_group_flipped<-function(prob_est_long,mapK, color_palette, fig_title){
   
@@ -156,7 +156,7 @@ plot_thetakj_heatmap<-function(prob_est_long, fig_title){
 
   prob_est_long %>% ggplot(aes(x = as.factor(cluster),y = NSES_VARS,fill = theta_kj)) +
   geom_tile() + 
-  geom_text(aes(label = round(theta_kj,2)), color = "black", size = 2) +
+  geom_text(aes(label = round(theta_kj,2)), color = "black", size = 4) +
   xlab(label = "Cluster") + ggtitle(fig_title) +
   scale_fill_viridis(name = "Probability") +
   theme(plot.title = element_text(hjust = 0.5),
@@ -169,7 +169,7 @@ plot_thetakj_heatmap_r<-function(prob_est_long, fig_title){
   
   prob_est_long %>% ggplot(aes(x = as.factor(cluster),y = reorder(NSES_VARS, theta_kj),fill = theta_kj)) +
     geom_tile() + 
-    geom_text(aes(label = round(theta_kj,2)), color = "black", size = 2) +
+    geom_text(aes(label = round(theta_kj,2)), color = "black", size = 4) +
     xlab(label = "Cluster") + ggtitle(fig_title) +
     scale_fill_viridis(name = "Probability") +
     theme(plot.title = element_text(hjust = 0.5),
