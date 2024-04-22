@@ -95,38 +95,39 @@ second_highest_index<-function(vec){
 #For ACS 2010 and mapK = 9
 mapK<-Mode(res_acs10$K.mcmc)[1]  #tells you mapK
 classificationprobs_10<-res_acs10$classificationProbabilities.ecr
-ClusterAssignment<-res_acs10$clusterMembershipPerMethod[,2]
+ClusterAssignment_ecr<-res_acs10$clusterMembershipPerMethod[,2]
 # Add cluster classification based on maximum probability 
 maxProb<-apply(classificationprobs_10, 1, max)
-ClusterAssignment_ecr_temp<-apply(classificationprobs_10,1, highest_index)
+ClusterAssignment_temp<-apply(classificationprobs_10,1, highest_index)
 
 
-classificationprobs_10$ClusterAssignment<-ClusterAssignment
+classificationprobs_10$ClusterAssignment_ecr<-ClusterAssignment_ecr
 classificationprobs_10$maxProb<-maxProb
-classificationprobs_10$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
+classificationprobs_10$ClusterAssignment_temp<-ClusterAssignment_temp
 
 #9 census tracts that are not classified based on highest prob
-table(classificationprobs_10$ClusterAssignment,classificationprobs_10$ClusterAssignment_ecr_temp)
+table(classificationprobs_10$ClusterAssignment_ecr,classificationprobs_10$ClusterAssignment_temp)
 
-classificationprobs_10 %>% filter(ClusterAssignment_ecr_temp != ClusterAssignment)
+classificationprobs_10 %>% filter(ClusterAssignment_temp != ClusterAssignment_ecr)
 ##This is odd-- these algorithms assign observations to clusters probabilistically based on the highest posterior probabilities of cluster assignments given the observed data
 ##--> SOLVED: it seems like a rounding issue because it makes the correct assignment when none of the probabilities have similar/same leading number.
 
-table(classificationprobs_10$ClusterAssignment)
-table(classificationprobs_10$ClusterAssignment_ecr_temp)
+table(classificationprobs_10$ClusterAssignment_ecr)
+table(classificationprobs_10$ClusterAssignment_temp)
 
 classificationprobs_10$GEOID<-row.names(censusdata_bin$acs5_2010_bin)
 
 #**Since the distribution is not much different, we can re-assign these 9 census tracts to the cluster they belong based on the highest probability-- all other classificiations match perfectly, and so we will keep variable ClusterAssignment_ecr_temp.
 #Also make a note of these "fuzzy" census tracts- to see if same across survey waves
-fuzzygeoids_10<-classificationprobs_10 %>% filter(ClusterAssignment_ecr_temp != ClusterAssignment) %>% select(GEOID)
-
+fuzzygeoids_10<-classificationprobs_10 %>% filter(ClusterAssignment_ecr != ClusterAssignment_temp) %>% select(GEOID)
+##Find census tracts for which the maximum probability of assignment is less than 50 for further exploration-- 83
+ctslw50<-classificationprobs_10 %>% filter(maxProb < 0.5) 
 
 #Prep Data
-classificationprobs_10$ClusterAssignment_final<- factor(classificationprobs_10$ClusterAssignment_ecr_temp, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
+classificationprobs_10$ClusterAssignment_final<- factor(classificationprobs_10$ClusterAssignment_temp, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
+
 
 dat10_clusters<- classificationprobs_10 %>% select(GEOID,ClusterAssignment_final, maxProb)
-
 
 
 ###########################################################################################
@@ -148,7 +149,7 @@ acs10bin$ClusterAssignment<-classificationprobs_10$ClusterAssignment_final
 #acs15bin$ClusterAssignment<- factor(acs15bin$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
 
 
-table1(~ Lackplumbing_2010 + medianincome_2010 + BachelorHigherP_2010  +  Education9years_2010 +  Femalehousehold_2010_P + HighSchoolHigherP_2010 + No_vehicle_2010 + OwnerOccupiedUnitP_2010 + RenterOccupiedUnitP_2010 + UnemployementP_2010 + working_class_2010 + SNAP_2010_P +  Hispanic_or_Latino_2010 + NonHispanicBlack_2010 + NonHispanicAsian_2010 + pov_2010 + Crowding_housing_2010 + lang_home_EN_notwell_2010|ClusterAssignment, data= acs10, overall = F)
+table1(~ Lackplumbing_2010 + medianincome_2010 + BachelorHigherP_2010  +  Education9years_2010 +  Femalehousehold_2010_P + HighSchoolHigherP_2010 + No_vehicle_2010 + OwnerOccupiedUnitP_2010 + RenterOccupiedUnitP_2010 + UnemployementP_2010 + working_class_2010 + SNAP_2010_P +  Hispanic_or_Latino_2010 + NonHispanicBlack_2010 + NonHispanicAsian_2010 + pov_2010 + Crowding_housing_2010 + lang_home_EN_notwell_2010|ClusterAssignment, data= acs10bin, overall = F)
 
 
 ```
@@ -159,13 +160,26 @@ table1(~ Lackplumbing_2010 + medianincome_2010 + BachelorHigherP_2010  +  Educat
 boxplot10<- merged10 %>%  ggplot(aes(x = ClusterAssignment_final, y = maxProb, fill = ClusterAssignment_final)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
-       y = "Assignment Probability after ECR algorithm", 
+       y = "Cluster Assignment Probability", 
        x= "")
 boxplot10
-dattable<- merged10 %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
+dattable<- merged10 %>% rename(`Assignment Probability` = maxProb,
                     `Cluster Assignment` = ClusterAssignment_final) 
 
-table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, data= dattable, overall = F)
+table1::table1(~`Assignment Probability` |`Cluster Assignment`, data= dattable, overall = F)
+
+
+##Exploration of the 83 census tracts with prob < 0.5
+
+ctslw50 %>%  ggplot(aes(x = as.factor(ClusterAssignment_temp), y = maxProb, fill = as.factor(ClusterAssignment_temp))) +
+  geom_boxplot() +
+  labs(fill = "Cluster Assignment", 
+       y = "Assignment Probability (< 50%)", 
+       x= "")
+
+#Need to calcualte posterior probabilities
+#P(Z=k| K_map, x_i, pi,theta)
+
 
 ```
 
@@ -209,6 +223,7 @@ dat_10<-preparedat_fig(res_acs10,mapK,sesvars)
 p_10_indiv<-plot_thetakj_indiv(prob_est_long = dat_10, mapK,color_palette = pastel_palette1, fig_title)
 
 p_10_group<-plot_thetakj_group(prob_est_long = dat_10, mapK,color_palette = group_cols, fig_title)
+p_10_group2<-plot_thetakj_group(prob_est_long = dat_10, mapK,color_palette = group_cols, fig_title, numR = 5,numC = 2)
 
 p_10_heatmap<- plot_thetakj_heatmap(prob_est_long = dat_10, fig_title)
 p_10_heatmap2<- plot_thetakj_heatmap_r(prob_est_long = dat_10, fig_title)
@@ -229,6 +244,15 @@ png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/
  p_10_group
 dev.off()
 
+
+
+
+#Bar plot to look at distribution of the binary variables -- using acs10bin dataset
+check<-acs10bin %>% select(medianincome_2010,ClusterAssignment)
+
+
+
+
 ```
 
 ### **Plots** and Patterns for ACS 2011-2015
@@ -242,6 +266,23 @@ stats<-cbind(summary(res_acs15$parameters.ecr.mcmc)$statistics[,c(1,2)], summary
 
 tail(round(stats,4), mapK) %>% kable()
 #check clusters 6, 7 and 9
+
+#We are going to take out cluster 7 and renormalize the mixing weights and then we need to reassign cts based on a model of 8 clusters.
+
+mixwts15<-as.matrix(res_acs15$parameters.ecr.mcmc)[,163:171]
+#remove cluster 7
+
+
+apply(mixwts15, 1, sum) 
+apply(wts, 2, quantile, probs = c(0.025, 0.975))
+
+
+
+
+
+
+
+
 ```
 
 #### Age and Race/Ethnicity Distribution of the census tracts by cluster assignment
@@ -258,6 +299,8 @@ classificationprobs_15$ClusterAssignment<-res_acs15$clusterMembershipPerMethod[,
 classificationprobs_15$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
 classificationprobs_15$maxProb<-maxProb
 
+
+tabl
 
 #Prep Data 
 table(classificationprobs_15$ClusterAssignment_ecr_temp, classificationprobs_15$ClusterAssignment)
@@ -537,11 +580,11 @@ temp<-get_acs(state = "MA", geography = "tract",
                    variables = "B03002_001", year = 2010, geometry = TRUE, cache_table = TRUE)
 
 temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
-dat10map<-merged10 %>% select(GEOID,NAME.x, ClusterAssignment, maxProb) %>% rename(NAME = NAME.x)
+dat10map<-merged10 %>% select(GEOID, ClusterAssignment_final, maxProb) 
 
 #join datasets
 map10<- merge(temp1, dat10map, by = "GEOID")
-map10<-map10 %>%  select(GEOID, NAME.x, ClusterAssignment, maxProb, geometry) %>% rename(NAME = NAME.x)
+map10<-map10 %>%  select(GEOID,NAME, ClusterAssignment_final, maxProb, geometry) 
 
 # tm_shape(st_make_valid(map10)) + 
 #   tm_polygons(col = "maxProb",style = "quantile",
@@ -551,7 +594,7 @@ map10<-map10 %>%  select(GEOID, NAME.x, ClusterAssignment, maxProb, geometry) %>
 #             frame = FALSE,
 #             legend.outside = TRUE)
 
-map10<- map10 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment))
+map10<- map10 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment_final))
 map10$`Probabilistic Cluster Assingment`<-as.factor(map10$`Probabilistic Cluster Assingment`)
 
 map10_clust<-tm_shape(st_make_valid(map10)) +
@@ -661,5 +704,6 @@ save(dat10, dat15, dat19, file = "/Users/carmenrodriguez/Desktop/Research Projec
 
 #Export 2010 only
 dat10_export<- merged10 %>% select("GEOID","ClusterAssignment_final")
+saveRDS(dat10_export, file = "dat10_temp.rds")
 
 ```

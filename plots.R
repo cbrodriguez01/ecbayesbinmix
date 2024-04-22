@@ -100,18 +100,18 @@ plot_thetakj_indiv<-function(prob_est_long,mapK, color_palette, fig_title){
 #aes(fill = as.factor(NSES_group))
 
 
-plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title){
+plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title, numR = mapK, numC= 1){
 
   # Generate plot
   prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
     geom_col()  +
-    facet_wrap(~cluster, nrow = mapK) + 
+    facet_wrap(~cluster, nrow = numR, ncol = numC) + 
     scale_fill_manual(values = color_palette) + 
     labs(title = fig_title, x= "",
          y = "Probability",
          fill = "Neighborhood SES Variables") +
     theme(text = element_text(size = 12),
-          axis.text.x = element_text(size=8.5, angle=45, vjust = 0.75, hjust = 0.88), 
+          axis.text.x = element_text(size=9, angle=90, vjust = 0.75, hjust = 0.88), 
           axis.title.x = element_text(size = 8, color = "black", face = "bold"),
           axis.title.y = element_text(size = 8, color = "black", face = "bold"),
           #axis.ticks = element_blank(),
@@ -176,5 +176,22 @@ plot_thetakj_heatmap_r<-function(prob_est_long, fig_title){
           axis.title.y = element_blank()) # Remove y-axis title
   
 }
+
+
+
+
+#Bar graph of distribution of binary variables across clusters
+plot_barBin<-function(data, mapK, color_palette, fig_title){
+  
+  
+  
+  
+  
+  
+  
+}
+
+
+
 
 

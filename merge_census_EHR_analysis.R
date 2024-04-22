@@ -109,9 +109,10 @@ table(ehrdata_19$yeardx)
 #------CENSUS DATA  with clusters only & CENSUS DATA with Yost NSES Index only-------
 load("./bayesbinmix_clustered_tracts.RData")
 load("./YostIndexDat.RData")
+acs2010<-readRDS("./dat10_temp.rds")
 ### Census data by survey wave
-str(dat10)
-dat10<-merge(dat10,yostindex10, by ="GEOID")
+str(acs2010)
+dat10<-merge(acs2010,yostindex10, by ="GEOID")
 dat10<-as.data.frame(dat10)
 dat10$census_tract<-str_sub(dat10$GEOID,start=6, end = 11) 
 dat10$countycode<-str_sub(dat10$GEOID,start=3, end = 5)
@@ -341,28 +342,28 @@ table(ehrcensus10$ClusterAssignment, ehrcensus10$yostindex)
 #####------ 2006-2010-----
 #We will model the probability of not receiving optimal care
 #Set cluster with largest n as the reference
-ehrcensus10$ClusterAssignmentr <- relevel(ehrcensus10$ClusterAssignment , ref= 6)
+ehrcensus10$ClusterAssignmentr <- relevel(ehrcensus10$ClusterAssignment_final , ref= 9)
 ehrcensus10$notoptimal<- ifelse(ehrcensus10$optimal_care == "Not optimal", 1, 0)
 
 #check<-ehrcensus10 %>% filter(cluster==4) %>% select("census_tract","NAME", "race_eth",  "optimal_care")
 
 #Unadjusted
-mod1<-glm(notoptimal ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus10)
+mod1<-glm(optimal_care ~ ClusterAssignmentr,family=binomial(link='logit'),data= ehrcensus10)
 ##The odds of not receiving optimal care are 0.63 lower
 
 #Adjust for socio-demographic characteristics
-mod2<- glm(notoptimal ~ ClusterAssignmentr  + yeardx + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus10)
+mod2<- glm(optimal_care ~ ClusterAssignmentr  + yeardx + race_eth_recode + age_dx_cat + insurance_status,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod2)
 #Based on distribution of age by census tracts, population in census tracts in cluster 4 are older-- highest median age compared to other clusters
 #Facility information 
-mod3<-glm(notoptimal ~ ClusterAssignmentr + yeardx + facility_type1_cat_1,family=binomial(link='logit'),data= ehrcensus10)
+mod3<-glm(optimal_care ~ ClusterAssignmentr + yeardx + facility_type1_cat_1,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod3)
 #Adjust for  tumor info
-mod4<- glm(notoptimal ~ ClusterAssignmentr + yeardx + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus10)
+mod4<- glm(optimal_care ~ ClusterAssignmentr + yeardx + FIGOStage + Grade_cat  ,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod4)
 
 #Full model
-mod5<- glm(notoptimal ~ ClusterAssignmentr + race_eth_recode + yeardx  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus10)
+mod5<- glm(optimal_care ~ ClusterAssignmentr  + yeardx  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod5)
 
 p<-glm(optimal_care ~  FIGOStage,family=binomial(link='logit'),data= ehrcensus15)
@@ -373,7 +374,7 @@ exp(coef(p))
 #---Models with Yost index--- direction we expect based on prev literature
 mod6<- glm(notoptimal ~ yostindex,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod6)
-mod7<- glm(notoptimal ~ yostindex + race_eth_recode + yeardx  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus10)
+mod7<- glm(optimal_care ~ yostindex + race_eth_recode + yeardx  + age_dx_cat + FIGOStage + Grade_cat + insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus10)
 summary(mod7)
 
 
@@ -421,7 +422,7 @@ tab_model(mod7, p.style = "stars",
 #Plot models: https://strengejacke.github.io/sjPlot/articles/blackwhitefigures.html
 # set variable label for response
 set_label(ehrcensus10$notoptimal) <- "Did not receive optimal care"
-plot_models(mod5, vline.color = "black",legend.title = "", m.labels = "Fully adjusted")
+plot_models(mod5, vline.color = "black",legend.title = "", m.labels = "Outcome: Optimal Care")
 
 #####------ 2011-2015-----
 ehrcensus15$ClusterAssignmentr <- relevel(ehrcensus15$ClusterAssignment , ref= 6)
