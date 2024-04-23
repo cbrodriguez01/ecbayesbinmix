@@ -100,7 +100,7 @@ plot_thetakj_indiv<-function(prob_est_long,mapK, color_palette, fig_title){
 #aes(fill = as.factor(NSES_group))
 
 
-plot_thetakj_group<-function(prob_est_long,mapK, color_palette, fig_title, numR = mapK, numC= 1){
+plot_thetakj_group<-function(prob_est_long, color_palette, fig_title, numR = mapK, numC= 1){
 
   # Generate plot
   prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
@@ -181,17 +181,64 @@ plot_thetakj_heatmap_r<-function(prob_est_long, fig_title){
 
 
 #Bar graph of distribution of binary variables across clusters
-plot_barBin<-function(data, mapK, color_palette, fig_title){
+#1) Get proportions for level "1"
+propbin<-function(dataset,  mapK, sesvars){
+  binvars<- names(dataset)[1:18]
+  props<-matrix(NA, nrow = length(binvars), ncol = mapK + 1)
+  colnames(props)<-c("var", paste0("cluster", 1:mapK))
+  for (i in 1:length(binvars)) {
+    binvar<-binvars[i]
+    # Create a contingency table
+    tab<- table(dataset[["ClusterAssignment"]], dataset[[binvar]], useNA = "always")
+    
+    # Calculate proportions
+    p <- prop.table(tab, margin = 1)[,2]  # proportions for == 1
+    
+    props[i,1]<-binvar
+    props[i,2:(mapK+1)]<-p[1:mapK]
+  }
+  
+  props2<-as.data.frame(t(props))
+  colnames(props2)<-sesvars
+  props2<-props2[-1,]
+  props2$cluster<- row.names(props2)
+
+  props2_long<-props2 %>% pivot_longer(!cluster, names_to = "NSES_VARS", values_to = "prop")
+  
+  # Group variables
+  prop2_long1<-props2_long %>% mutate(NSES_group = case_when(
+    NSES_VARS %in% c("Crowded housing","Lack complete plumbing", "No vehicle","Owner-occupied","Renter-occupied", "Female household") ~ 1,
+    NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 2,
+    NSES_VARS %in% c("Unemployment","Working class") ~ 4,
+    NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits") ~ 3,
+    NSES_VARS %in% c("Hispanic or Latino", "NH Black", "NH Asian", "Limited EN Proficiency") ~ 5,))
   
   
+  prop2_long1$NSES_group<- factor(prop2_long1$NSES_group,levels = 1:5, labels = c("Household", "Education", "Income", "Occupation", "Ethnic Minorities and Language"))
   
+  prop2_long1$NSES_VARS<- factor(prop2_long1$NSES_VARS, levels = unique(prop2_long1$NSES_VARS[order(prop2_long1$NSES_group)]))
+  prop2_long1$prop<-round(as.numeric(prop2_long1$prop),3)
   
-  
-  
-  
+  return(prop2_long1)
 }
 
-
-
-
-
+plot_barBin<-function(data,color_palette, fig_title,numR = mapK, numC= 1){
+  
+  data %>% ggplot(aes(x = NSES_VARS, y = prop, fill = NSES_group)) +
+    geom_col()  +
+    facet_wrap(~cluster,nrow = numR, ncol = numC) + 
+    scale_fill_manual(values = color_palette) + 
+    labs(title = fig_title, x= "",
+         y = "Probability",
+         fill = "Neighborhood SES Variables") +
+    theme(text = element_text(size = 12),
+          axis.text.x = element_text(size=9, angle=90, vjust = 0.75, hjust = 0.88), 
+          axis.title.x = element_text(size = 8, color = "black", face = "bold"),
+          axis.title.y = element_text(size = 8, color = "black", face = "bold"),
+          #axis.ticks = element_blank(),
+          legend.title = element_text(size = 8, color = "black", face = "bold"),
+          legend.text = element_text(size = 8, color = "black"),
+          legend.position = "right",
+          plot.title = element_text(hjust = 0.5))
+  
+}

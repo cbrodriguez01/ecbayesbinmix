@@ -245,14 +245,10 @@ png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/
 dev.off()
 
 
-
-
 #Bar plot to look at distribution of the binary variables -- using acs10bin dataset
-check<-acs10bin %>% select(medianincome_2010,ClusterAssignment)
-
-
-
-
+datbinprop10<-propbin(acs10bin,mapK, sesvars)
+p_10_groupbin<-plot_barBin(datbinprop10,color_palette = group_cols, fig_title = "", numR = 5, numC = 2)
+    
 ```
 
 ### **Plots** and Patterns for ACS 2011-2015
