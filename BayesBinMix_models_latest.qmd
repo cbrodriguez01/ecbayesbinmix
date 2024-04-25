@@ -145,7 +145,7 @@ acs10$ClusterAssignment<-merged10$ClusterAssignment_final
 acs10bin<-censusdata_bin$acs5_2010_bin
 acs10bin$GEOID <- rownames(acs10bin)
 acs10bin<- acs10bin %>% mutate_if(is.numeric, as.factor)
-acs10bin$ClusterAssignment<-classificationprobs_10$ClusterAssignment_final
+acs10bin$ClusterAssignment<-as.numeric(classificationprobs_10$ClusterAssignment_final)
 #acs15bin$ClusterAssignment<- factor(acs15bin$ClusterAssignment, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
 
 
@@ -222,13 +222,11 @@ dat_10<-preparedat_fig(res_acs10,mapK,sesvars)
 
 p_10_indiv<-plot_thetakj_indiv(prob_est_long = dat_10, mapK,color_palette = pastel_palette1, fig_title)
 
-p_10_group<-plot_thetakj_group(prob_est_long = dat_10, mapK,color_palette = group_cols, fig_title)
-p_10_group2<-plot_thetakj_group(prob_est_long = dat_10, mapK,color_palette = group_cols, fig_title, numR = 5,numC = 2)
+p_10_group<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title)
+p_10_group2<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title, numR = 5,numC = 2)
 
 p_10_heatmap<- plot_thetakj_heatmap(prob_est_long = dat_10, fig_title)
 p_10_heatmap2<- plot_thetakj_heatmap_r(prob_est_long = dat_10, fig_title)
-
-#p_10_group_flipped<-plot_thetakj_group_flipped(prob_est_long = dat_10, mapK,color_palette = group_cols, fig_title)
 
 
 #p_10_indiv
@@ -236,19 +234,89 @@ p_10_group
 p_10_heatmap
 p_10_heatmap2
 
-pdf("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars.pdf", width = 10, height = 20)
+pdf("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars_top.pdf", width = 10, height = 20)
 p_10_group
 dev.off()
 
-png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars.png", width = 780, height = 900)
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars_top.png", width = 760, height = 886)
  p_10_group
 dev.off()
 
 
 #Bar plot to look at distribution of the binary variables -- using acs10bin dataset
+acs10bin$ClusterAssignment<- as.factor(acs10bin$ClusterAssignment)
 datbinprop10<-propbin(acs10bin,mapK, sesvars)
 p_10_groupbin<-plot_barBin(datbinprop10,color_palette = group_cols, fig_title = "", numR = 5, numC = 2)
-    
+
+
+#Plot figures side by side
+names(dat_10)<- c("cluster","NSES_VARS", "prop","NSES_group")
+dat_10$probtype<-1
+datbinprop10$probtype<-2
+alldat<-rbind(dat_10, datbinprop10)
+alldat$probtype<-factor(alldat$probtype, levels = 1:2, labels = c("Model", "Observed"))
+
+
+P1<-dat_10 %>% ggplot(aes(x = NSES_VARS, y = prop, fill = NSES_group)) +
+    geom_col()  +
+    facet_wrap(~cluster ,nrow = mapK, ncol = 1) + 
+    scale_fill_manual(values = group_cols) + 
+    labs(title = "Model", x= "",
+         y = "Probability",
+         fill = "Neighborhood SES Variables") +
+    theme(text = element_text(size = 12),
+          axis.text.x = element_text(size=9, angle=90, vjust = 0.75, hjust = 0.88), 
+          axis.title.x = element_text(size = 8, color = "black", face = "bold"),
+          axis.title.y = element_text(size = 8, color = "black", face = "bold"),
+          legend.position = "none",
+          plot.title = element_text(hjust = 0.5))
+  
+P2<-datbinprop10 %>% ggplot(aes(x = NSES_VARS, y = prop, fill = NSES_group)) +
+    geom_bar(stat = "identity", position = "dodge")+
+    facet_wrap(~cluster ,nrow = mapK, ncol = 1) + 
+    scale_fill_manual(values = group_cols) + 
+    labs(title = "Observed", x= "",
+         y = "Probability",
+         fill = "Neighborhood SES Variables") +
+    theme(text = element_text(size = 12),
+          axis.text.x = element_text(size=9, angle=90, vjust = 0.75, hjust = 0.88), 
+          axis.title.x = element_text(size = 8, color = "black", face = "bold"),
+          axis.title.y = element_text(size = 8, color = "black", face = "bold"),
+          #axis.ticks = element_blank(),
+          legend.title = element_text(size = 8, color = "black", face = "bold"),
+          legend.text = element_text(size = 8, color = "black"),
+          legend.position = "none",
+          plot.title = element_text(hjust = 0.5))
+
+library(gridExtra)
+grid.arrange(P1,P2, ncol =2)
+
+
+
+
+
+figcomb<-alldat %>% ggplot(aes(x = NSES_VARS, y = prop, fill = NSES_group)) +
+    geom_col()   +
+    facet_grid(cluster ~ probtype, scales = "free", space = "free") + 
+    scale_fill_manual(values = group_cols) + 
+    labs(title = "", x= "",
+         y = "Probability",
+         fill = "Neighborhood SES Variables") +
+    theme(text = element_text(size = 12),
+          axis.text.x = element_text(size=9, angle=45, vjust = 0.75, hjust = 0.88), 
+          axis.title.x = element_text(size = 8, color = "black", face = "bold"),
+          axis.title.y = element_text(size = 8, color = "black", face = "bold"),
+          #axis.ticks = element_blank(),
+          legend.title = element_text(size = 8, color = "black", face = "bold"),
+          legend.text = element_text(size = 8, color = "black"),
+          legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5))
+
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_combined.png", width = 850, height = 900)
+figcomb
+dev.off()
+
+
 ```
 
 ### **Plots** and Patterns for ACS 2011-2015

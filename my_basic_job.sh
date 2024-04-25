@@ -4,8 +4,8 @@
 #SBATCH -p shared 
 #SBATCH --mem=64000 
 #SBATCH -t 0-25:00:00 
-#SBATCH -o myoutput_tuningheats_4.14_%j.out 
-#SBATCH -e myerrors_tuningheats_4.14_%j.err  
+#SBATCH -o myoutput_tuningheats_4.25_%j.out 
+#SBATCH -e myerrors_tuningheats_4.25_%j.err  
 #SBATCH --mail-type=BEGIN,END,FAIL  # Mail notifications
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu   # Account to email
 
