@@ -89,7 +89,7 @@ saveRDS(output, "/n/home03/crodriguezcabrera/ecbayesbinmix/tuningheatsvec_4.25.2
 
 
 
-#checks<-readRDS("./tuningheatsvec_4.14.24.rds")
+#checks<-readRDS("./tuningheatsvec_4.25.24.rds")
 #checks$sar #it seems that for these datasets a smaller deltaT works better
 
 #colnames(checks$sar)<-c("2010", "2015", "2019")

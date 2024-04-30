@@ -1,11 +1,12 @@
 #Running latest models
 #Packages required
 library(BayesBinMix)
+library(tidyverse)
 library(foreach)
 library(label.switching)
 library(doParallel)
 library(coda)
-#Last edited: 4/5/24
+#Last edited: 4/30/24
 
 #Run models-- edited to change the parameter of the Dirichlet distribution to 1/Kmax (2/10/24)
 
@@ -25,10 +26,11 @@ library(coda)
 #' @param acsid which dataset, character; options: acs10, acs15, acs19
 #' 
 #' @returns  a named list containing model results 
+#' 
+#' 
+#' 
 
-run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, burnin){
-  #start.time <- Sys.time()
-  heats <- seq(1, 0.2, length = nChains)
+run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, burnin, heats){
   
   #Part of function->outPrefix:The name of the produced outut folder. An error is thrown if the directory exists.Add date to fix this issue
   out.path<-paste0(wd, acsid, sep= "_",Sys.Date() ,sep = "_",Kmax)
@@ -47,47 +49,58 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, bu
   return(out.list)
 }
 
-#ADDED ON 3/30/24-- running model with race/eth-- 18 vars
-#3/29 16 vars ran model with minority status variable
-censusdata_bin <- readRDS("./censusdata_bin_raceeth_033024.rds")
+#ADDED ON 4/30/24-- running model without race/eth--
+censusdata_bin <- readRDS("./censusdata_bin_raceeth_042524.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
-datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
+#Exclude race vars
+acs10<-censusdata_bin$acs5_2010_bin %>% select(-c("Hispanic_or_Latino_2010","NonHispanicBlack_2010","NonHispanicAsian_2010"))
+acs15<-censusdata_bin$acs5_2015_bin %>% select(-c("Hispanic_or_Latino_2015","NonHispanicBlack_2015","NonHispanicAsian_2015"))
+acs19<-censusdata_bin$acs5_2019_bin %>% select(-c("Hispanic_or_Latino_2019","NonHispanicBlack_2019","NonHispanicAsian_2019"))
 
-#INCREASE ITERATIONS
+
+datasets<- list(acs10=as.matrix(acs10),acs15=as.matrix(acs15), acs19=as.matrix(acs19))
+
 Kmax<-50
-gamma<-rep((1/Kmax),Kmax) #to induce sparsity
-#We want 15,000 iterations and 5000 burn-in
-#INCREASE ITERATIONS AND BURN-IN-- 
-#m<-2000 
-#burnin<-m/2
-#2500 ; 1000
-m<-2000
-burnin<-1000
-nChains<-6
+gamma<-rep((1/Kmax),Kmax)
+m<-1500
+burnin<-500
 
-#3/10/24 added a burn in of 500 (technically 5000) and we changed gamma = 1/kmax, and set Kmax = 50
-#wd<-"/homes6/carmen/Other projects/"
+generateHeats<-function(deltatempvec, npchains){
+  heatslist<-list()
+  for (j in 1:length(deltatempvec)){
+    heats<-c()
+    for (i in 1:npchains){
+      heats[i]<- 1/(1 +  (i-1) * deltatempvec[j])
+    }
+    #print(heats)
+    #Save heats vector in list
+    heatslist[[j]]<-heats
+  }
+  return(heatslist)
+  
+}
+
+nChains<- 4
+#Already tuned deltaT-see TroubleshootingHeatsPart2.R
+heatsvec<-generateHeats(0.01, nChains)
+
 
 wd<-"/n/home03/crodriguezcabrera/BayesBinMix_Project/"
-acsid<- c("acs10","acs15")
-#length(datasets)
+acsid<- c("acs10","acs15", "acs19")
+
 res_all<-list()
-for (i in 1:2){
+for (i in 1:length(datasets)){
     model.res<-run_models(dataset = datasets[[acsid[i]]], Kmax = Kmax,gamma=gamma, 
                           nChains= nChains, m= m, ClusterPrior, wd = wd, 
-                          acsid = acsid[i], burnin= burnin)
+                          acsid = acsid[i], burnin= burnin, heats = heatsvec)
     
     res_all<-append(res_all, model.res)
   }
 
 
 
-
-
-
-
-#Output will include 2 lists of length 7
-saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACS2_raceeth_4.6.24.rds")
+#Output will include 3 lists of length 7
+saveRDS(res_all, "/n/home03/crodriguezcabrera/ecbayesbinmix/ACS_noraceeth_4.30.24.rds")
 
 
 

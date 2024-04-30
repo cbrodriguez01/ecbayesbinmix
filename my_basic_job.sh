@@ -3,9 +3,9 @@
 #SBATCH -c 5  
 #SBATCH -p shared 
 #SBATCH --mem=64000 
-#SBATCH -t 0-25:00:00 
-#SBATCH -o myoutput_tuningheats_4.25_%j.out 
-#SBATCH -e myerrors_tuningheats_4.25_%j.err  
+#SBATCH -t 0-15:00:00 
+#SBATCH -o myoutput_tuningheats_4.30_%j.out 
+#SBATCH -e myerrors_tuningheats_4.30_%j.err  
 #SBATCH --mail-type=BEGIN,END,FAIL  # Mail notifications
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu   # Account to email
 
@@ -18,4 +18,4 @@ export R_LIBS_USER=$HOME/apps/R_4.3.1:$R_LIBS_USER
 cd $HOME/ecbayesbinmix/
 
 #Run the R script
-Rscript TroubleshootingHeatsPart2.R
+Rscript run_binmodels_newheats.R
