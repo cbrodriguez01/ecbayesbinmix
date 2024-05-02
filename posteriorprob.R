@@ -87,7 +87,7 @@ X<-X1 %>% filter( GEOID %in% flagcts) %>% select(-c(GEOID))
 g<-extract_params(12, res_acs10, sesvars)
 flagposterior<-posteriorprob(X, theta= g[[1]], pk=g[[2]],12)
 head(flagposterior)
-head(cts10lw50[,1:12])
+head(cts10lw50[,1:12], 3)
 
 maxProb_flagcts<-apply(flagposterior, 1, max)
 clustertemp<-apply(flagposterior,1, highest_index)
@@ -95,10 +95,12 @@ clustertemp<-apply(flagposterior,1, highest_index)
 flagposterior$maxProb_flagcts<-maxProb_flagcts
 flagposterior$clustertemp<-clustertemp
 table(flagposterior$clustertemp)
+table(cts10lw50$ClusterAssignment_temp)
+table(cts10lw50$ClusterAssignment_ecr)
 
 table(cts10lw50$ClusterAssignment_temp,flagposterior$clustertemp)
 
-flagposterior %>%  ggplot(aes(x = as.factor(clustertemp), y = maxProb_flagcts, fill = as.factor(clustertemp))) +
+flags_boxplot2<-flagposterior %>%  ggplot(aes(x = as.factor(clustertemp), y = maxProb_flagcts, fill = as.factor(clustertemp))) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability (< 50%)", 

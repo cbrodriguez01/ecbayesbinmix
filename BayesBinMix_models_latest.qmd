@@ -184,7 +184,7 @@ table1::table1(~`Assignment Probability` |`Cluster Assignment`, data= dattable, 
 
 ##Exploration of the 60 census tracts with prob < 0.5
 
-flags_boxplot<-ctslw50 %>%  ggplot(aes(x = as.factor(ClusterAssignment_temp), y = maxProb, fill = as.factor(ClusterAssignment_temp))) +
+flags_boxplot<-cts10lw50 %>%  ggplot(aes(x = as.factor(ClusterAssignment_temp), y = maxProb, fill = as.factor(ClusterAssignment_temp))) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability (< 50%)", 
@@ -247,6 +247,7 @@ p_10_heatmap2<- plot_thetakj_heatmap_r(prob_est_long = dat_10, fig_title)
 
 #p_10_indiv
 p_10_group
+p_10_group2
 p_10_heatmap
 p_10_heatmap2
 
@@ -382,7 +383,7 @@ tabl
 table(classificationprobs_15$ClusterAssignment_ecr_temp, classificationprobs_15$ClusterAssignment)
 
 classificationprobs_15%>% filter(ClusterAssignment != ClusterAssignment_ecr_temp) 
-#only 6 CTs
+#only 5CTs
 
 classificationprobs_15$GEOID<-row.names(censusdata_bin$acs5_2015_bin)
 #only 6 CTs
