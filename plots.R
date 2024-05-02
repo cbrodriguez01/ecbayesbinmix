@@ -246,3 +246,6 @@ plot_barBin<-function(data,color_palette, fig_title,numR = mapK, numC= 1){
           plot.title = element_text(hjust = 0.5))
   
 }
+
+
+

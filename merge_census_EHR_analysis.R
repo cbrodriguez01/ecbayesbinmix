@@ -153,6 +153,12 @@ rmv<- which(!(ehrcensus10$countycode.x == ehrcensus10$countycode.y))
 ehrcensus10<- ehrcensus10 %>% filter(row_number() %!in%  rmv)
 #length(unique(ehrcensus10$Patient_ID_Num))
 
+
+### added 4/30/24-- to be removed later
+cts10<- unique(ehrcensus10$census_tract)
+
+
+
 ehrcensus15<- left_join(ehrdata_15, dat15, by=  "census_tract", relationship = "many-to-many") #3119
 #Now keep the counties at diagnosis
 table(ehrcensus15$countycode.x) # out of these 68, we only need to keep 34
