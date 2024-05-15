@@ -37,9 +37,11 @@ res_all<-readRDS("./tuningheatsvec_4.25.24.rds")
 #It seems that heating vector with deltaT = 0.01 worked well for all datasets-- swap acceptance rates ranged from 55.7% - 64%
 
 
-res_acs10<-res_all[[1]][["res_acs10_deltatemp2"]]
-res_acs15<-res_all[[1]][["res_acs15_deltatemp2"]]
-res_acs19<-res_all[[1]][["res_acs19_deltatemp2"]]
+res_acs10<-res_all[[1]][["res_acs10_deltatemp3"]]
+res_acs15<-res_all[[1]][["res_acs15_deltatemp3"]]
+res_acs19<-res_all[[1]][["res_acs19_deltatemp3"]]
+
+
 ```
 
 ```{r}
@@ -176,7 +178,7 @@ boxplot10<- merged10 %>% ggplot(aes(x = ClusterAssignment_final, y = maxProb, fi
           axis.ticks = element_blank(),
           axis.text.x =element_blank()) 
 boxplot10
-dattable<- merged10 %>% filter(maxProb > 0.5) %>% rename(`Assignment Probability` = maxProb,
+dattable<- merged10 %>% rename(`Assignment Probability` = maxProb,
                     `Cluster Assignment` = ClusterAssignment_final) 
 
 table1::table1(~`Assignment Probability` |`Cluster Assignment`, data= dattable, overall = F)
@@ -239,7 +241,7 @@ dat_10<-preparedat_fig(res_acs10,mapK,sesvars)
 p_10_indiv<-plot_thetakj_indiv(prob_est_long = dat_10, mapK,color_palette = pastel_palette1, fig_title)
 
 p_10_group<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title)
-p_10_group2<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title, numR = 5,numC = 2)
+p_10_group2<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title, numR = 7,numC = 2)
 
 p_10_heatmap<- plot_thetakj_heatmap(prob_est_long = dat_10, fig_title)
 p_10_heatmap2<- plot_thetakj_heatmap_r(prob_est_long = dat_10, fig_title)
@@ -255,8 +257,8 @@ pdf("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/
 p_10_group
 dev.off()
 
-png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars_top.png", width = 760, height = 886)
- p_10_group
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars_top_mapK13.png", width = 950, height = 900)
+ p_10_group2
 dev.off()
 
 
@@ -330,6 +332,11 @@ figcomb
 dev.off()
 
 
+#added 5/15/24--to be removed
+mergedexport<- merge(classificationprobs_10, acs10bin, by= "GEOID")
+str(mergedexport)
+#export this data to be used for further exploration
+saveRDS(mergedexport, file = "./acs10clust_5.15.24.rds")
 ```
 
 ### **Plots** and Patterns for ACS 2011-2015
