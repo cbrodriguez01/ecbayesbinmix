@@ -6,8 +6,6 @@ library(label.switching)
 library(doParallel)
 library(coda)
 
-
-
 run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, burnin, heats, heatsid){
   out.path<-paste0(wd, acsid, sep= "_",Sys.Date() ,sep = "_",heatsid)
   
@@ -87,53 +85,3 @@ output<- list(res_all,  "sar2"=swap_rate)
 #SAVE OUTPUT
 saveRDS(output, "/n/home03/crodriguezcabrera/ecbayesbinmix/tuningheatsvec_4.25.24.rds")
 
-
-
-#checks<-readRDS("./tuningheatsvec_4.25.24.rds")
-#checks$sar #it seems that for these datasets a smaller deltaT works better
-
-#colnames(checks$sar)<-c("2010", "2015", "2019")
-
-# Check if mixing well-- for heats vector 1
-
-# #Plots like Figure 4 in the paper
-# 
-# #(1) Illustrate the sampled values of K per chain according to the Poisson and uniform prior distribution using data from K.allChains
-# Kallchains<-read.table(file = "/Users/carmenrodriguez/Desktop/temp/acs10_2024-04-11_deltatemp1/K.allChains.txt", header = T)
-# 
-# 
-# Kallchains$m <-as.numeric(row.names(Kallchains))
-# Kallchains1<-Kallchains %>% pivot_longer(cols = 1:4, names_to ="Chain", values_to = "K")
-# 
-# #Need more iterations-- this plot shows the generated values of K per heated chain-- note chain 1 is the original (^1)
-# Kallchains1 %>% ggplot(aes(x = m, y = K, col = as.factor(Chain))) + geom_line()
-# 
-# 
-# 
-# 
-# #(2) Raw output of p1,...,pK  and theta_kj conditional on K=2 (NOT REORDERED!)-- rawMCMC.mapK.3.txt
-# datraw<-read.table(file = "/Users/carmenrodriguez/Desktop/temp/archive/acs10_2024-04-11_deltatemp1/rawMCMC.mapK.2.txt", header = T)
-# 
-# datraw<-datraw[,c("p.1","p.2")]
-# colnames(datraw)<-c("Component 1", "Component 2")
-# datraw$iteration<-as.numeric(row.names(datraw))
-# datraw<-datraw %>% pivot_longer(cols = 1:2, names_to = "Component", values_to = "raw.mix.prop")
-# datraw %>% ggplot(aes(x=iteration, y = raw.mix.prop, col = as.factor(Component))) + geom_point(size = 4)
-# 
-# 
-# # #(3) Reordered by ECR algorithm
-# reordered<-read.table(file = "/Users/carmenrodriguez/Desktop/temp/archive/acs10_2024-04-11_deltatemp1/reorderedMCMC-ECR.mapK.2.txt", header = T)
-# # 
-# reorderedp<-reordered[,c("p.1","p.2")]
-# colnames(reorderedp)<-c("Component 1", "Component 2")
-# reorderedp$iteration<-as.numeric(row.names(reorderedp))
-# reorderedp<-reorderedp %>% pivot_longer(cols = 1:2, names_to = "Component", values_to = "reordered.mix.prop")
-# reorderedp %>% ggplot(aes(x=iteration, y = reordered.mix.prop, col = as.factor(Component))) + geom_point(size =4 )
-# 
-# # 
-# 
-
-# wd<-"/Users/carmenrodriguez/Desktop/temp/"
-# checking<-run_models(dataset = datasets[[acsid[1]]], Kmax = Kmax,gamma=gamma, 
-#            nChains= nChains, m= 500, ClusterPrior, wd = wd, 
-#            acsid = acsid[1], burnin= 100, heats = heatslist[[heatsid[1]]], heatsid = heatsid[1])

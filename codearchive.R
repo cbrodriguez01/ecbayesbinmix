@@ -1,3 +1,186 @@
+###########################################################################################
+###########################################################################################
+###########################################################################################
+##---CROSS-TABS
+#We will use 2006-2010 survey as the reference, that is we will compare to this survey
+table(acs10 = merged10$ClusterAssignment_final, acs15 = merged15$ClusterAssignment_final)
+
+#Relabel clusters in acs15 based on qualitative descriptions
+merged15$clustersnum<- as.numeric(merged15$ClusterAssignment_new)
+merged15<-merged15 %>% mutate(ClusterAssignment = case_when(
+  clustersnum == 1 ~ 7,
+  clustersnum == 2 ~ 4,
+  clustersnum == 3 ~ 2,
+  clustersnum == 4 ~ 5,
+  clustersnum == 5 ~ 6,
+  clustersnum == 6 ~ 1,
+  clustersnum == 7 ~ 8,
+  clustersnum == 8 ~ 3,
+))
+
+table(merged15$clustersnum, merged15$ClusterAssignment)
+merged15$ClusterAssignment<- 
+  factor(merged15$ClusterAssignment, levels = 1:8, labels = paste0("cluster", 1:8, sep= " "))
+
+table(acs10 = merged10$ClusterAssignment, acs15 = merged15$ClusterAssignment)
+
+
+#Similarly for 2015-2019 we use 2011-2015 as refence
+table(acs15 = merged15$ClusterAssignment, acs19 = merged19$ClusterAssignment_new)
+merged19$clustersnum<- as.numeric(merged19$ClusterAssignment_new)
+merged19<-merged19 %>% mutate(ClusterAssignment = case_when(
+  clustersnum == 1 ~ 2,
+  clustersnum == 2 ~ 3,
+  clustersnum == 3 ~ 6,
+  clustersnum == 4 ~ 5,
+  clustersnum == 5 ~ 8,
+  clustersnum == 6 ~ 1,
+))
+
+table(merged19$clustersnum, merged19$ClusterAssignment)
+
+merged19$ClusterAssignment<- 
+  factor(merged19$ClusterAssignment, levels = c(1,2,3,5,6,8), labels = paste0("cluster", c(1,2,3,5,6,8), sep= " "))
+
+table(merged15$ClusterAssignment,merged19$ClusterAssignment)
+
+
+##---MAPS
+#https://geodacenter.github.io/workbook/3a_mapping/lab3a.html#mapping-categorical-variables
+#https://spatialanalysis.github.io/handsonspatialdata/basic-mapping.html#introduction-4
+#https://stackoverflow.com/questions/73990261/unable-to-plot-the-census-tracts-using-tmap
+#https://ggplot2.tidyverse.org/reference/ggsf.html
+#https://r-spatial.org/r/2017/03/19/invalid.html#empty-geometries
+
+
+
+#Brew colors
+colorswant<-RColorBrewer::brewer.pal(9, "Set1")
+
+options(tigris_use_cache = TRUE)
+temp<-get_acs(state = "MA", geography = "tract", 
+              variables = "B03002_001", year = 2010, geometry = TRUE, cache_table = TRUE)
+
+temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
+dat10map<-merged10 %>% select(GEOID, ClusterAssignment_final, maxProb) 
+
+#join datasets
+map10<- merge(temp1, dat10map, by = "GEOID")
+map10<-map10 %>%  select(GEOID,NAME, ClusterAssignment_final, maxProb, geometry) 
+
+# tm_shape(st_make_valid(map10)) + 
+#   tm_polygons(col = "maxProb",style = "quantile",
+#           n = 9, palette= "Set1",
+#           title = "2006-2010 MA Census") + 
+#   tm_layout(title = "",
+#             frame = FALSE,
+#             legend.outside = TRUE)
+
+map10<- map10 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment_final))
+map10$`Probabilistic Cluster Assingment`<-as.factor(map10$`Probabilistic Cluster Assingment`)
+
+map10_clust<-tm_shape(st_make_valid(map10)) +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette=colorswant,)  +
+  tm_borders() +
+  tm_layout(title = "2006-2010 ACS Census Tracts", title.position = c("left","top"), scale = 1.2)
+
+temp<-get_acs(state = "MA", geography = "tract", 
+              variables = "DP05_0065", year = 2015, geometry = TRUE, cache_table = TRUE)
+
+temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
+dat15map<-merged15 %>% select(GEOID,NAME, ClusterAssignment, probassign) 
+
+#join datasets
+map15<- merge(temp1, dat15map, by = "GEOID")
+map15<-map15 %>%  select(GEOID, NAME.x, ClusterAssignment, probassign, geometry) %>% rename(NAME = NAME.x)
+
+# tm_shape(st_make_valid(map15)) + 
+#   tm_polygons(col = "probassign",style = "quantile",
+#           n = 9, palette= "Set1",
+#           title = "2011-2015 MA Census") + 
+#   tm_layout(title = "",
+#             frame = FALSE,
+#             legend.outside = TRUE)
+
+map15<- map15 %>% mutate(`Probabilistic Cluster Assingment` = as.numeric(ClusterAssignment))
+map15$`Probabilistic Cluster Assingment`<-as.factor(map15$`Probabilistic Cluster Assingment`)
+
+
+map15_clust<-tm_shape(st_make_valid(map15)) +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette=colorswant,)  +
+  tm_borders() +
+  tm_layout(title = "2011-2015 ACS Census Tracts", title.position = c("left","top"), scale = 1.2)
+
+temp<-get_acs(state = "MA", geography = "tract", 
+              variables = "B03002_001", year = 2019, geometry = TRUE, cache_table = TRUE)
+
+temp1<- temp %>% select(GEOID, NAME, geometry, estimate)
+dat19map<-merged19 %>% select(GEOID,NAME, ClusterAssignment, probassign) 
+
+#join datasets
+map19<- merge(temp1, dat19map, by = "GEOID")
+map19<-map19 %>%  select(GEOID, NAME.x, ClusterAssignment, probassign, geometry) %>% rename(NAME = NAME.x)
+
+# tm_shape(st_make_valid(map19)) + 
+#   tm_polygons(col = "probassign",style = "quantile",
+#           n = 7, palette= "Set1",
+#           title = "2015-2019 MA Census") + 
+#   tm_layout(title = "",
+#             frame = FALSE,
+#             legend.outside = TRUE)
+
+map19<- map19 %>% mutate(`Probabilistic Cluster Assingment` = ClusterAssignment)
+map19$`Probabilistic Cluster Assingment`<-as.factor(map19$`Probabilistic Cluster Assingment`)
+
+#colors to match other maps
+colmatch<-c("#E41A1C", "#377EB8","#4DAF4A","#FF7F00", "#FFFF33","#F781BF")
+map19_clust<-tm_shape(st_make_valid(map19)) +
+  tm_fill("Probabilistic Cluster Assingment",style="cat",palette=colmatch,)  +
+  tm_borders() +
+  tm_layout(title = "2015-2019 ACS Census Tracts", title.position = c("left","top"), scale = 1.2)
+
+
+#3 datasets with cluster assingment, prob of assingment
+map10_1<- as.data.frame(map10)
+dat10<-map10_1 %>% select(GEOID, NAME, ClusterAssignment, maxProb)
+dat10$cluster_color<-as.numeric(dat10$ClusterAssignment)
+dat10$cluster_color<- factor(dat10$cluster_color,levels = 1:9, labels= c("red", "blue",
+                                                                         "green","purple","orange","yellow", "brown","pink","grey"))
+
+table(dat10$cluster_color)
+table(dat10$ClusterAssignment)
+
+
+
+dat15<-as.data.frame(map15) %>% select(GEOID, NAME, ClusterAssignment, probassign)
+dat15$cluster_color<-as.numeric(dat15$ClusterAssignment)
+dat15$cluster_color<- factor(dat15$cluster_color,levels = 1:8, labels= c("red", "blue",
+                                                                         "green","purple","orange","yellow", "brown","pink"))
+
+table(dat15$cluster_color)
+table(dat15$ClusterAssignment)
+
+
+dat19<-as.data.frame(map19) %>% select(GEOID, NAME, ClusterAssignment, probassign)
+dat19$cluster_color<-as.numeric(dat19$ClusterAssignment)
+dat19$cluster_color<- factor(dat19$cluster_color,levels = c(1,2,3,5,6,8), labels= c("red", "blue","green","orange","yellow", "pink"))
+
+table(dat19$cluster_color)
+table(dat19$ClusterAssignment)
+
+
+
+########### EXPORT ##############
+#save data
+save(dat10, dat15, dat19, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/bayesbinmix_clustered_tracts.RData")
+
+
+#Export 2010 only
+dat10_export<- merged10 %>% select("GEOID","ClusterAssignment_final")
+saveRDS(dat10_export, file = "dat10_temp.rds")
+
+
+
 
 nChains <- 4
 heats <- seq(1, 0.4, length = nChains)
@@ -271,5 +454,55 @@ plot_group2<-prop2_long1 %>% ggplot(aes(x = NSES_VARS, y = prop, fill = NSES_gro
 
 
 
+
+
+#checks<-readRDS("./tuningheatsvec_4.25.24.rds")
+#checks$sar #it seems that for these datasets a smaller deltaT works better
+
+#colnames(checks$sar)<-c("2010", "2015", "2019")
+
+# Check if mixing well-- for heats vector 1
+
+# #Plots like Figure 4 in the paper
+# 
+# #(1) Illustrate the sampled values of K per chain according to the Poisson and uniform prior distribution using data from K.allChains
+# Kallchains<-read.table(file = "/Users/carmenrodriguez/Desktop/temp/acs10_2024-04-11_deltatemp1/K.allChains.txt", header = T)
+# 
+# 
+# Kallchains$m <-as.numeric(row.names(Kallchains))
+# Kallchains1<-Kallchains %>% pivot_longer(cols = 1:4, names_to ="Chain", values_to = "K")
+# 
+# #Need more iterations-- this plot shows the generated values of K per heated chain-- note chain 1 is the original (^1)
+# Kallchains1 %>% ggplot(aes(x = m, y = K, col = as.factor(Chain))) + geom_line()
+# 
+# 
+# 
+# 
+# #(2) Raw output of p1,...,pK  and theta_kj conditional on K=2 (NOT REORDERED!)-- rawMCMC.mapK.3.txt
+# datraw<-read.table(file = "/Users/carmenrodriguez/Desktop/temp/archive/acs10_2024-04-11_deltatemp1/rawMCMC.mapK.2.txt", header = T)
+# 
+# datraw<-datraw[,c("p.1","p.2")]
+# colnames(datraw)<-c("Component 1", "Component 2")
+# datraw$iteration<-as.numeric(row.names(datraw))
+# datraw<-datraw %>% pivot_longer(cols = 1:2, names_to = "Component", values_to = "raw.mix.prop")
+# datraw %>% ggplot(aes(x=iteration, y = raw.mix.prop, col = as.factor(Component))) + geom_point(size = 4)
+# 
+# 
+# # #(3) Reordered by ECR algorithm
+# reordered<-read.table(file = "/Users/carmenrodriguez/Desktop/temp/archive/acs10_2024-04-11_deltatemp1/reorderedMCMC-ECR.mapK.2.txt", header = T)
+# # 
+# reorderedp<-reordered[,c("p.1","p.2")]
+# colnames(reorderedp)<-c("Component 1", "Component 2")
+# reorderedp$iteration<-as.numeric(row.names(reorderedp))
+# reorderedp<-reorderedp %>% pivot_longer(cols = 1:2, names_to = "Component", values_to = "reordered.mix.prop")
+# reorderedp %>% ggplot(aes(x=iteration, y = reordered.mix.prop, col = as.factor(Component))) + geom_point(size =4 )
+# 
+# # 
+# 
+
+# wd<-"/Users/carmenrodriguez/Desktop/temp/"
+# checking<-run_models(dataset = datasets[[acsid[1]]], Kmax = Kmax,gamma=gamma, 
+#            nChains= nChains, m= 500, ClusterPrior, wd = wd, 
+#            acsid = acsid[1], burnin= 100, heats = heatslist[[heatsid[1]]], heatsid = heatsid[1])
 
 

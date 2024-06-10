@@ -27,19 +27,21 @@ library(gmodels)
 
 ```{r}
 #Load census data and results from latest model
-censusdata_bin <- readRDS("./censusdata_bin_raceeth_033024.rds")
+censusdata_bin <- readRDS("./censusdata_bin_raceeth_042524.rds")
 censusdata<- load("./censusdata_updated_newvars.RData")
 agedist<-load("./census_age_dist.RData")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 
-#Output from heating vector tuning-- 4/14/24
-res_all<-readRDS("./tuningheatsvec_4.14.24.rds")
-#It seems that heating vector with deltaT = 0.01 worked well for all datasets-- swap acceptance rates ranged from 54-56.8%
-#deltaT2: 22.2%, 25.7%, 22.7
+#Output from heating vector tuning-- 4/25/24-- had an issue with my binary data
+res_all<-readRDS("./tuningheatsvec_4.25.24.rds")
+#It seems that heating vector with deltaT = 0.01 worked well for all datasets-- swap acceptance rates ranged from 55.7% - 64%
 
-res_acs10<-res_all[[1]][["res_acs10_deltatemp1"]]
-res_acs15<-res_all[[1]][["res_acs15_deltatemp1"]]
-res_acs19<-res_all[[1]][["res_acs19_deltatemp1"]]
+
+res_acs10<-res_all[[1]][["res_acs10_deltatemp3"]]
+res_acs15<-res_all[[1]][["res_acs15_deltatemp3"]]
+res_acs19<-res_all[[1]][["res_acs19_deltatemp3"]]
+
+
 ```
 
 ```{r}
@@ -63,10 +65,12 @@ stats<-cbind(summary(res_acs10$parameters.ecr.mcmc)$statistics[,c(1,2)],
 tail(round(stats, 4), mapK) %>% kable()
 
 check<-as.matrix(res_acs10$parameters.ecr.mcmc)
-wts<-check[,163:171]
+wts<-check[,217:228]
 colMeans(wts)
 apply(wts, 2, sd) 
 apply(wts, 2, quantile, probs = c(0.025, 0.975))
+
+#Flagging mixture weights for clusters: 5,7
 ```
 
 ```{r}
@@ -92,7 +96,7 @@ second_highest_index<-function(vec){
 #### Explore cluster assignment based on ECR algorithm + Distribution of census variables across clusters
 
 ```{r}
-#For ACS 2010 and mapK = 9
+#For ACS 2010 and mapK = 12
 mapK<-Mode(res_acs10$K.mcmc)[1]  #tells you mapK
 classificationprobs_10<-res_acs10$classificationProbabilities.ecr
 ClusterAssignment_ecr<-res_acs10$clusterMembershipPerMethod[,2]
@@ -105,7 +109,7 @@ classificationprobs_10$ClusterAssignment_ecr<-ClusterAssignment_ecr
 classificationprobs_10$maxProb<-maxProb
 classificationprobs_10$ClusterAssignment_temp<-ClusterAssignment_temp
 
-#9 census tracts that are not classified based on highest prob
+#10 census tracts that are not classified based on highest prob
 table(classificationprobs_10$ClusterAssignment_ecr,classificationprobs_10$ClusterAssignment_temp)
 
 classificationprobs_10 %>% filter(ClusterAssignment_temp != ClusterAssignment_ecr)
@@ -117,15 +121,22 @@ table(classificationprobs_10$ClusterAssignment_temp)
 
 classificationprobs_10$GEOID<-row.names(censusdata_bin$acs5_2010_bin)
 
-#**Since the distribution is not much different, we can re-assign these 9 census tracts to the cluster they belong based on the highest probability-- all other classificiations match perfectly, and so we will keep variable ClusterAssignment_ecr_temp.
+#**Since the distribution is not much different, we can re-assign these 10 census tracts to the cluster they belong based on the highest probability-- all other classifications match perfectly, and so we will keep variable ClusterAssignment_temp.
 #Also make a note of these "fuzzy" census tracts- to see if same across survey waves
 fuzzygeoids_10<-classificationprobs_10 %>% filter(ClusterAssignment_ecr != ClusterAssignment_temp) %>% select(GEOID)
-##Find census tracts for which the maximum probability of assignment is less than 50 for further exploration-- 83
-ctslw50<-classificationprobs_10 %>% filter(maxProb < 0.5) 
+##Find census tracts for which the maximum probability of assignment is less than 50 for further exploration-- 60 census tracts -only
+cts10lw50<-classificationprobs_10 %>% filter(maxProb < 0.5)
+table(cts10lw50$ClusterAssignment_temp)
 
+#EHR data only has 1260 unique census tracts for 2010 --check if these 60 are within cts10lw50
+#cts10lw50$census_tract<-str_sub(cts10lw50$GEOID,start=6, end = 11) 
+#sum(cts10lw50$census_tract %in% cts10) #only 41/60 are in the EHR data
+
+```
+
+```{r}
 #Prep Data
-classificationprobs_10$ClusterAssignment_final<- factor(classificationprobs_10$ClusterAssignment_temp, levels = 1:9, labels = paste0("cluster", 1:9, sep= " "))
-
+classificationprobs_10$ClusterAssignment_final<- factor(classificationprobs_10$ClusterAssignment_temp, levels = 1:mapK, labels = paste0("cluster", 1:mapK, sep= " "))
 
 dat10_clusters<- classificationprobs_10 %>% select(GEOID,ClusterAssignment_final, maxProb)
 
@@ -157,11 +168,15 @@ table1(~ Lackplumbing_2010 + medianincome_2010 + BachelorHigherP_2010  +  Educat
 #### Distribution of assignment probabilities to the most probable cluster
 
 ```{r}
-boxplot10<- merged10 %>%  ggplot(aes(x = ClusterAssignment_final, y = maxProb, fill = ClusterAssignment_final)) +
+#filter(maxProb > 0.5) %>%  
+boxplot10<- merged10 %>% ggplot(aes(x = ClusterAssignment_final, y = maxProb, fill = ClusterAssignment_final)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Cluster Assignment Probability", 
-       x= "")
+       x= "") +
+     theme(text = element_text(size = 12),
+          axis.ticks = element_blank(),
+          axis.text.x =element_blank()) 
 boxplot10
 dattable<- merged10 %>% rename(`Assignment Probability` = maxProb,
                     `Cluster Assignment` = ClusterAssignment_final) 
@@ -169,13 +184,16 @@ dattable<- merged10 %>% rename(`Assignment Probability` = maxProb,
 table1::table1(~`Assignment Probability` |`Cluster Assignment`, data= dattable, overall = F)
 
 
-##Exploration of the 83 census tracts with prob < 0.5
+##Exploration of the 60 census tracts with prob < 0.5
 
-ctslw50 %>%  ggplot(aes(x = as.factor(ClusterAssignment_temp), y = maxProb, fill = as.factor(ClusterAssignment_temp))) +
+flags_boxplot<-cts10lw50 %>%  ggplot(aes(x = as.factor(ClusterAssignment_temp), y = maxProb, fill = as.factor(ClusterAssignment_temp))) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability (< 50%)", 
-       x= "")
+       x= "") +
+     theme(text = element_text(size = 12),
+          axis.ticks = element_blank(),
+          axis.text.x =element_blank()) 
 
 #Need to calcualte posterior probabilities
 #P(Z=k| K_map, x_i, pi,theta)
@@ -223,7 +241,7 @@ dat_10<-preparedat_fig(res_acs10,mapK,sesvars)
 p_10_indiv<-plot_thetakj_indiv(prob_est_long = dat_10, mapK,color_palette = pastel_palette1, fig_title)
 
 p_10_group<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title)
-p_10_group2<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title, numR = 5,numC = 2)
+p_10_group2<-plot_thetakj_group(prob_est_long = dat_10,color_palette = group_cols, fig_title, numR = 7,numC = 2)
 
 p_10_heatmap<- plot_thetakj_heatmap(prob_est_long = dat_10, fig_title)
 p_10_heatmap2<- plot_thetakj_heatmap_r(prob_est_long = dat_10, fig_title)
@@ -231,6 +249,7 @@ p_10_heatmap2<- plot_thetakj_heatmap_r(prob_est_long = dat_10, fig_title)
 
 #p_10_indiv
 p_10_group
+p_10_group2
 p_10_heatmap
 p_10_heatmap2
 
@@ -238,8 +257,8 @@ pdf("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/
 p_10_group
 dev.off()
 
-png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars_top.png", width = 760, height = 886)
- p_10_group
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot10_18vars_top_mapK13.png", width = 950, height = 900)
+ p_10_group2
 dev.off()
 
 
@@ -291,10 +310,6 @@ P2<-datbinprop10 %>% ggplot(aes(x = NSES_VARS, y = prop, fill = NSES_group)) +
 library(gridExtra)
 grid.arrange(P1,P2, ncol =2)
 
-
-
-
-
 figcomb<-alldat %>% ggplot(aes(x = NSES_VARS, y = prop, fill = NSES_group)) +
     geom_col()   +
     facet_grid(cluster ~ probtype, scales = "free", space = "free") + 
@@ -317,6 +332,11 @@ figcomb
 dev.off()
 
 
+#added 5/15/24--to be removed
+mergedexport<- merge(classificationprobs_10, acs10bin, by= "GEOID")
+str(mergedexport)
+#export this data to be used for further exploration
+saveRDS(mergedexport, file = "./acs10clust_5.15.24.rds")
 ```
 
 ### **Plots** and Patterns for ACS 2011-2015
@@ -364,13 +384,11 @@ classificationprobs_15$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
 classificationprobs_15$maxProb<-maxProb
 
 
-tabl
-
 #Prep Data 
 table(classificationprobs_15$ClusterAssignment_ecr_temp, classificationprobs_15$ClusterAssignment)
 
 classificationprobs_15%>% filter(ClusterAssignment != ClusterAssignment_ecr_temp) 
-#only 6 CTs
+#only 5CTs
 
 classificationprobs_15$GEOID<-row.names(censusdata_bin$acs5_2015_bin)
 #only 6 CTs
@@ -472,7 +490,7 @@ tail(stats, mapK) %>% kable()
 #### Age and Race/Ethnicity Distribution of the census tracts by cluster assignment
 
 ```{r}
-#For ACS 2019 and mapK = 8
+#For ACS 2019 and mapK = 13
 classificationprobs_19<-res_acs19$classificationProbabilities.ecr
 # Add cluster classification based on maximum and 2nd highest probability 
 maxProb<-apply(classificationprobs_19, 1, max)
@@ -485,14 +503,14 @@ classificationprobs_19$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
 
 table(classificationprobs_19$ClusterAssignment_ecr_temp, classificationprobs_19$ClusterAssignment)
 
-#7 cts HT1, 15 HT2
+#9 cts HT1, 15 HT2
 classificationprobs_19%>% filter(ClusterAssignment_ecr_temp != ClusterAssignment) 
 
 classificationprobs_19$GEOID<-row.names(censusdata_bin$acs5_2019_bin)
 fuzzygeoids_19<-classificationprobs_19%>% filter(ClusterAssignment_ecr_temp != ClusterAssignment) %>% select(GEOID)
 
 classificationprobs_19$ClusterAssignment_final<- 
-  factor(classificationprobs_19$ClusterAssignment_ecr_temp, levels = 1:7, labels = paste0("cluster", 1:7, sep= " "))
+  factor(classificationprobs_19$ClusterAssignment, levels = 1:13, labels = paste0("cluster", 1:13, sep= " "))
 
 
 dat19_clusters<- classificationprobs_19 %>% select(GEOID,ClusterAssignment_final, maxProb)
@@ -528,7 +546,11 @@ boxplot19<-merged19%>%  ggplot(aes(x = ClusterAssignment_final, y = maxProb, fil
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
-       x= "")
+       x= "") +
+  theme_classic() +
+   theme(legend.position = "none") 
+  
+boxplot19
 
 dattable19<-merged19 %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
                     `Cluster Assignment` = ClusterAssignment_final) 
@@ -554,6 +576,8 @@ fig_title = ""
 dat_19<-preparedat_fig(res_acs19,mapK,sesvars)
 p_19_indiv<-plot_thetakj_indiv(prob_est_long = dat_19, mapK,color_palette = pastel_palette1, fig_title)
 p_19_group<-plot_thetakj_group(prob_est_long = dat_19, mapK,color_palette = group_cols, fig_title)
+
+
 p_19_heatmap<-plot_thetakj_heatmap(prob_est_long = dat_19, fig_title)
 p_19_heatmap1<-plot_thetakj_heatmap_r(prob_est_long = dat_19, fig_title)
 #p_19_indiv
@@ -570,6 +594,26 @@ png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/
 p_19_group
 dev.off()
 
+#Filter by clusters n> 100
+#3,8,11,12
+
+p_19_group2<-plot_thetakj_group(prob_est_long = dat_19 %>% filter(cluster %in% c(3,8,11,12)),color_palette = group_cols, fig_title= "", numR = 4, numC= 1)
+
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot19_18vars_mapK13_4clust.png", width = 800, height = 600)
+p_19_group2
+dev.off()
+pdf("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot19_18vars_mapK13_4clust.pdf", width = 10, height = 8)
+p_19_group2
+dev.off()
+
+#added 5/17/24--to be removed
+str(classificationprobs_19)
+str(acs19bin)
+
+mergedexport<- merge(classificationprobs_19, acs19bin, by= "GEOID")
+str(mergedexport)
+#export this data to be used for further exploration
+saveRDS(mergedexport, file = "./acs19clust_5.17.24.rds")
 ```
 
 #### CROSS-TABS
