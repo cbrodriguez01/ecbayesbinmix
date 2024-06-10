@@ -82,7 +82,7 @@ generateHeats<-function(deltatempvec, npchains){
 
 nChains<- 4
 #Already tuned deltaT-see TroubleshootingHeatsPart2.R
-heatsvec<-generateHeats(0.01, nChains)
+heatsvec<-generateHeats(0.01, nChains)[[1]]
 
 
 wd<-"/n/home03/crodriguezcabrera/BayesBinMix_Project/"
