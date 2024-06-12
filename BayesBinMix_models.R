@@ -33,7 +33,7 @@ agedist<-load("./Data/census_age_dist.RData")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 
 ###########################################################################
-#     Output from heating vector tuning-- 4/25/24
+#     Output from heating vector tuning-- 4/25/24 including ethnic minority
 ###########################################################################
 
 #Output from heating vector tuning-- 4/25/24-- had an issue with my binary data
@@ -505,17 +505,265 @@ pdf("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/
 p_19_group2
 dev.off()
 
+
+
+
 ###########################################################################
-#     Output from models on ----
+#     Output from 6/10/24 including ethnic minority
+###########################################################################
+#ACS data with no ethnic minority variabbles
+censusdata_bin_noraceeth<-readRDS("./Data/censusdata_bin_noraceeth_061024.rds")
+names(censusdata_bin_noraceeth) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
+
+res_all1<-readRDS("./Model Outputs/binmod_noraceeth_6.10.24.rds")
+#Similar to above, deltatemp3
+
+res1_acs10<-res_all1[[1]][["res_acs10_deltatemp3_poisson"]]
+res1_acs15<-res_all1[[1]][["res_acs15_deltatemp3_poisson"]]
+res1_acs19<-res_all1[[1]][["res_acs19_deltatemp3_poisson"]]
+
+print(res1_acs10)
+print(res1_acs15)
+print(res1_acs19)
+
+Kvec<-seq(1:20)
+probKvec_10<- c(rep(0,8),0.214, 0.332, 0.246, 0.135, 0.049, 0.020, 0.004,rep(0,5))
+probKvec_15<- c(rep(0,9),0.117, 0.357, 0.314, 0.166, 0.041, 0.004, 0.001,rep(0,4))
+probKvec_19<- c(rep(0,9),0.510, 0.342, 0.115, 0.023, 0.009, 0.001,rep(0,5))
+datPlot<- data.frame(Kvec, probKvec_10, probKvec_15, probKvec_19)
+datPlot_long<- datPlot %>%  pivot_longer(cols = 2:4, names_to = "Survey", values_to = "ProbK")
+
+
+datPlot_long %>% ggplot(aes(x = Kvec, y = ProbK, fill = Survey)) +
+  geom_bar(stat = "identity", position = position_dodge())+
+  labs(x = "K",
+       y = "P(K|data)") 
+
+
+#Will look at the last survey wave first
+###########################################################################
+#                           ACS 2015-2019
+###########################################################################
+
+##-Cluster mixing weights estimates
+mapK<-Mode(res1_acs19$K.mcmc)[1]
+#Class probabilities
+stats<-cbind(summary(res1_acs19$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res1_acs19$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+tail(stats, mapK) %>% kable()
+#Mixing weights are prerry good!
+
+##--Explore cluster assignment based on ECR algorithm + Distribution of census variables across clusters
+#For ACS 2019 and mapK = 13
+classificationprobs_19<-res1_acs19$classificationProbabilities.ecr
+# Add cluster classification based on maximum and 2nd highest probability 
+maxProb<-apply(classificationprobs_19, 1, max)
+ClusterAssignment_ecr_temp<-apply(classificationprobs_19,1, highest_index)
+
+classificationprobs_19$maxProb<-maxProb
+classificationprobs_19$ClusterAssignment<-res1_acs19$clusterMembershipPerMethod[,2]
+classificationprobs_19$ClusterAssignment_ecr_temp<-ClusterAssignment_ecr_temp
+
+
+table(classificationprobs_19$ClusterAssignment_ecr_temp, classificationprobs_19$ClusterAssignment)
+#6 census tracts
+classificationprobs_19%>% filter(ClusterAssignment_ecr_temp != ClusterAssignment) 
+
+#Prep data
+classificationprobs_19$GEOID<-row.names(censusdata_bin_noraceeth$acs5_2019_bin)
+fuzzygeoids_19<-classificationprobs_19%>% filter(ClusterAssignment_ecr_temp != ClusterAssignment) %>% select(GEOID)
+
+
+classificationprobs_19$ClusterAssignment_final<- 
+  factor(classificationprobs_19$ClusterAssignment, levels = 1:10, labels = paste0("cluster", 1:10, sep= " "))
+
+dat19_clusters<- classificationprobs_19 %>% select(GEOID,ClusterAssignment_final, maxProb)
+
+###########################################################################################
+#Distribution of assignment probabilities to the most probable cluster
+boxplot19<-dat19_clusters %>%  ggplot(aes(x = ClusterAssignment_final, y = maxProb, fill = ClusterAssignment_final)) +
+  geom_boxplot() +
+  labs(fill = "Cluster Assignment", 
+       y = "Assignment Probability after ECR algorithm", 
+       x= "") +
+  theme_classic() +
+  theme(legend.position = "none") 
+
+boxplot19
+
+dattable19<-dat19_clusters %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
+                                      `Cluster Assignment` = ClusterAssignment_final) 
+
+table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
+               data= dattable19, overall = F)
+
+
+###########################################################################################
+#Distribution of other demographic census variables across clusters to help with profiles
+
+#Distrubution of SES variables by cluster
+acs19bin<-censusdata_bin_noraceeth$acs5_2019_bin
+acs19bin$GEOID <- rownames(acs19bin)
+acs19bin<- acs19bin %>% mutate_if(is.numeric, as.factor)
+acs19bin$ClusterAssignment<-dat19_clusters$ClusterAssignment_final
+
+table1(~ Lackplumbing_2019 + medianincome_2019 + BachelorHigherP_2019  + 
+         Education9years_2019 +  Femalehousehold_2019_P + HighSchoolHigherP_2019 +
+         No_vehicle_2019 + OwnerOccupiedUnitP_2019 + RenterOccupiedUnitP_2019 +
+         UnemployementP_2019 + working_class_2019 + SNAP_2019_P + pov_2019 + Crowding_housing_2019 + lang_home_EN_notwell_2019 |ClusterAssignment, data= acs19bin, overall = F)
+
+
+###########################################################################################
+#Generate bar plots using estimated theta_kj and observed data
+names(censusdata_bin_noraceeth$acs5_2019_bin)
+
+
+sesvars<-c("Median income", "Female household", "< HS", " >= HS", " >= Bacherlors", "Limited EN Proficiency", "Unemployment", "SNAP benefits", "Owner-occupied", "Renter-occupied", 
+           "No vehicle", "Crowded housing", "Below 150% poverty", "Working class", "Lack complete plumbing")
+
+# Other color options
+viridis_palette <- viridis(15)
+
+group_cols<-c("#1f77b4","#2ca02c","salmon1", "#bcbd22", "#e377c2")
+
+
+# Generate 14 pastel colors for ungrouped graph
+pastel_palette1 <- generate_pastel_colors(15)
+
+
+
+fig_title = ""
+dat_19<-preparedat_fig(res1_acs19,mapK,sesvars)
+levels(dat_19$NSES_group)<-c("Household", "Education", "Income", "Occupation", "Language")
+p_19_group<-plot_thetakj_group(prob_est_long = dat_19,color_palette = group_cols, fig_title)
+p_19_group2<-plot_thetakj_group(prob_est_long = dat_19,color_palette = group_cols, fig_title, numR = 5,numC = 2)
+
+
+p_19_group
+p_19_group2
+
+###########################################################################
+#     Output from models exploring the sensitivity of prior settings
 #Here we will focus on ACS 2015-2019
+#- Current approach combines mixtures of finite mixtures and an approximate DP where we let pi ~ Dir(gamma/K, …, gamma/K) and taking K to be large.
+#When K ->\infty, we precisely have a DP. We letting gamma = 1 and K = Kmax = 50. Additionally K ~  Truncated Poisson at Kmax.
+#- Using 1/Kmax on the Dirichlet induces a lot of sparsity and so for this we are going to relax this and assume pi~Dirichlet(1,…,1) 
+#for the prior on the mixing weights.
+
+#- Also, the package allows either a Uniform or Poisson prior on K, and thus we
+#will look at both and differing heating vectors for the MC^3 algorithm
 ###########################################################################
 
+#Includes ethnic minorities variables
+res_all2<-readRDS("./Model Outputs/acs19_raceeth_priors.rds")
+#deltatemp1 seemed to work best in MC^3 algorithm, swap acceptance rates of 24.7 and 28.1%
+#Lower than we observed in the other models when we induced a lot more sparsity
+#A swap acceptance rate of 6.5% is generally considered low for Parallel Tempering and may 
+#indicate suboptimal mixing between chains
+
+res19_poi<-res_all2[[1]][["res_acs19_deltatemp1_poisson"]]
+res19_unif<-res_all2[[1]][["res_acs19_deltatemp1_uniform"]]
+
+print(res19_poi) #9 clusters-- prob is higher!
+print(res19_unif) #7 clusters-- very close probability with 8 clusters
+
+mapK_unif<-Mode(res19_unif$K.mcmc)[1]
+mapK_poi<-Mode(res19_poi$K.mcmc)[1]
+
+mix_wts_poi<-cbind(summary(res19_poi$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res19_poi$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+tail(mix_wts_poi, mapK_poi) %>% kable()
+
+mix_wts_unif<-cbind(summary(res19_unif$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res19_unif$parameters.ecr.mcmc)$quantiles[,c(1,5)])
+tail(mix_wts_unif, mapK_unif) %>% kable()
+
+
+K<-6:13
+Poisson<- c(0,0.024, 0.168, 0.415, 0.153, 0.142, 0.072, 0.026)
+Uniform<- c(0.043, 0.391, 0.387, 0.168, 0.004, 0.007,0,0)
+datPlot1<- data.frame(K, Poisson, Uniform)
+datPlot_long<- datPlot1 %>%  pivot_longer(cols = 2:3, names_to = "Kprior", values_to = "ProbK")
+
+datPlot_long %>% ggplot(aes(x = K, y = ProbK, fill = Kprior)) +
+  geom_bar(stat = "identity", position = position_dodge())+
+  labs(x = "number of clusters",
+       y = "Posterior probability") 
+
+## When K ~ Poisson
+classificationprobs_poi<-res19_poi$classificationProbabilities.ecr
+# Add cluster classification based on maximum  probability 
+maxProb<-apply(classificationprobs_poi, 1, max)
+ClusterAssignment_highest<-apply(classificationprobs_poi,1, highest_index)
+
+classificationprobs_poi$maxProb<-maxProb
+classificationprobs_poi$ClusterAssignment_ecr<-res19_poi$clusterMembershipPerMethod[,2]
+classificationprobs_poi$ClusterAssignment_highest<-ClusterAssignment_highest
+#only 1 census tract!!!
+classificationprobs_poi%>% filter(ClusterAssignment_ecr!= ClusterAssignment_highest) 
+table(classificationprobs_poi$ClusterAssignment_ecr, classificationprobs_poi$ClusterAssignment_highest)
+#Prep data
+classificationprobs_poi$GEOID<-row.names(censusdata_bin$acs5_2019_bin)
+
+classificationprobs_poi$ClusterAssignment_final<- 
+  factor(classificationprobs_poi$ClusterAssignment_highest, levels = 1:10, labels = paste0("cluster", 1:10, sep= " "))
+
+dat19_clusters_poi<- classificationprobs_poi %>% select(GEOID,ClusterAssignment_final, maxProb)
+
+###########################################################################################
+#Distribution of assignment probabilities to the most probable cluster
+boxplot19_poi<-dat19_clusters_poi %>%  ggplot(aes(x = ClusterAssignment_final, y = maxProb, fill = ClusterAssignment_final)) +
+  geom_boxplot() +
+  labs(fill = "Cluster Assignment", 
+       y = "Assignment Probability after ECR algorithm", 
+       x= "") +
+  theme_classic() +
+  theme(legend.position = "none") 
+
+boxplot19_poi
+
+dattable19<-dat19_clusters_poi %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
+                                      `Cluster Assignment` = ClusterAssignment_final) 
+
+table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
+               data= dattable19, overall = F)
 
 
 
+## When K ~ Unif
+classificationprobs_unif<-res19_unif$classificationProbabilities.ecr
+# Add cluster classification based on maximum  probability 
+maxProb<-apply(classificationprobs_unif, 1, max)
+ClusterAssignment_highest<-apply(classificationprobs_unif,1, highest_index)
 
+classificationprobs_unif$maxProb<-maxProb
+classificationprobs_unif$ClusterAssignment_ecr<-res19_unif$clusterMembershipPerMethod[,2]
+classificationprobs_unif$ClusterAssignment_highest<-ClusterAssignment_highest
+#only 6 census tracts!!!
+classificationprobs_unif%>% filter(ClusterAssignment_ecr!= ClusterAssignment_highest) 
+table(classificationprobs_unif$ClusterAssignment_ecr, classificationprobs_unif$ClusterAssignment_highest)
+#Prep data
+classificationprobs_unif$GEOID<-row.names(censusdata_bin$acs5_2019_bin)
 
+classificationprobs_unif$ClusterAssignment_final<- 
+  factor(classificationprobs_unif$ClusterAssignment_highest, levels = 1:10, labels = paste0("cluster", 1:10, sep= " "))
 
+dat19_clusters_unif<- classificationprobs_unif %>% select(GEOID,ClusterAssignment_final, maxProb)
+
+###########################################################################################
+#Distribution of assignment probabilities to the most probable cluster
+boxplot19_unif<-dat19_clusters_unif %>%  ggplot(aes(x = ClusterAssignment_final, y = maxProb, fill = ClusterAssignment_final)) +
+  geom_boxplot() +
+  labs(fill = "Cluster Assignment", 
+       y = "Assignment Probability after ECR algorithm", 
+       x= "") +
+  theme_classic() +
+  theme(legend.position = "none") 
+
+boxplot19_unif
+
+dattable19<-dat19_clusters_unif %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb,
+                                          `Cluster Assignment` = ClusterAssignment_final) 
+
+table1::table1(~`Average Assignment Probability (ECR Algorithm)` |`Cluster Assignment`, 
+               data= dattable19, overall = F)
 
 
 
