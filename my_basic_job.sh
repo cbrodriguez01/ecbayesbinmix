@@ -3,9 +3,9 @@
 #SBATCH -c 5  
 #SBATCH -p shared 
 #SBATCH --mem=64000 
-#SBATCH -t 0-20:00:00 
-#SBATCH -o myoutput_binmodother_6.11_%j.out 
-#SBATCH -e myerrors_binmodother_6.11_%j.err  
+#SBATCH -t 0-30:00:00 
+#SBATCH -o myoutput_binmodother_6.23_%j.out 
+#SBATCH -e myerrors_binmodother_6.23_%j.err  
 #SBATCH --mail-type=BEGIN,END,FAIL  # Mail notifications
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu   # Account to email
 

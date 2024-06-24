@@ -29,7 +29,7 @@ run_models<-function(dataset,Kmax,gamma, nChains, m, ClusterPrior, wd, acsid, bu
 #Tuning heats for achieving reasonable acceptance rates
 censusdata_bin <- readRDS("/n/home03/crodriguezcabrera/ecbayesbinmix/Data/censusdata_bin_noraceeth_061024.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
-datasets<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
+datasets_noraceeth<- list(acs10=as.matrix(censusdata_bin$acs5_2010_bin),acs15=as.matrix(censusdata_bin$acs5_2015_bin), acs19=as.matrix(censusdata_bin$acs5_2019_bin))
 
 ##Function to generate heating vectors
 generateHeats<-function(deltatempvec, npchains){
@@ -93,7 +93,7 @@ generateHeats<-function(deltatempvec, npchains){
 ## 2. Explore the effect of prior settings-- only ACS 2015-2019 with race/ethnicity
 censusdata_bin2 <- readRDS("/n/home03/crodriguezcabrera/ecbayesbinmix/Data/censusdata_bin_raceeth_042524.rds")
 names(censusdata_bin2) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
-acs19_raceth<- as.matrix(censusdata_bin2$acs5_2019_bin)
+#acs19_raceth<- as.matrix(censusdata_bin2$acs5_2019_bin)
 
 #Model set up-- we let pi~Dirichlet(1,…,1) instead of inducing sparsity
 # We are already imposing a prior on the number of components
@@ -110,54 +110,103 @@ temps2<-c(0.025, 0.05,0.1)
 heatslist1<-generateHeats(temps2, nChains)
 heatsid<-paste0("deltatemp", 1:length(heatslist1))
 names(heatslist1) <-heatsid
-Kprior<-c("poisson", "uniform")
+#Kprior<-c("poisson", "uniform")
 
 
 #Run and save output with race/ethnicity
-res_acs19_raceeth<-list()
-swap_rate1<-matrix(1, nrow = 3 , ncol= 2)
-row.names(swap_rate1)<-heatsid
-colnames(swap_rate1)<-c("acs19_Kpoi", "acs19_Kunif")
-for (h in 1:length(heatslist1)){
-  #change prior settings
-  for (i in 1:length(Kprior)){
-    model.res<-run_models(dataset = acs19_raceth, Kmax = Kmax,gamma=gamma1, 
-                          nChains= nChains, m= m, ClusterPrior= Kprior[i], wd = wd, 
-                          acsid = "acs19", burnin= burnin, heats = heatslist1[[heatsid[h]]], heatsid = heatsid[h])
-    #Keep swap acceptance rate
-    swap_rate1[h, i]<-model.res[[1]]$chainInfo[2]
-    #Name models to keep track
-    #name_mod<- paste0("deltaT",h,sep="_", "K", Kprior[i])
-    
-    res_acs19_raceeth<-append(res_acs19_raceeth, model.res)
-  }
-}
-
-output_raceeth<- list(res_acs19_raceeth,  "sar_priors"=swap_rate1)
+# res_acs19_raceeth<-list()
+# swap_rate1<-matrix(1, nrow = 3 , ncol= 2)
+# row.names(swap_rate1)<-heatsid
+# colnames(swap_rate1)<-c("acs19_Kpoi", "acs19_Kunif")
+# for (h in 1:length(heatslist1)){
+#   #change prior settings
+#   for (i in 1:length(Kprior)){
+#     model.res<-run_models(dataset = acs19_raceth, Kmax = Kmax,gamma=gamma1, 
+#                           nChains= nChains, m= m, ClusterPrior= Kprior[i], wd = wd, 
+#                           acsid = "acs19", burnin= burnin, heats = heatslist1[[heatsid[h]]], heatsid = heatsid[h])
+#     #Keep swap acceptance rate
+#     swap_rate1[h, i]<-model.res[[1]]$chainInfo[2]
+#     #Name models to keep track
+#     #name_mod<- paste0("deltaT",h,sep="_", "K", Kprior[i])
+#     
+#     res_acs19_raceeth<-append(res_acs19_raceeth, model.res)
+#   }
+# }
+# 
+# output_raceeth<- list(res_acs19_raceeth,  "sar_priors"=swap_rate1)
 
 #Run and save output without race/ethnicity
-acs19_noraceeth<- as.matrix(censusdata_bin$acs5_2019_bin)
-res_acs19_noraceeth<-list()
-swap_rate2<-matrix(1, nrow = 3 , ncol= 2)
-row.names(swap_rate2)<-heatsid
-colnames(swap_rate2)<-c("acs19_Kpoi", "acs19_Kunif")
-for (h in 1:length(heatslist1)){
-  #change prior settings
-  for (i in 1:length(Kprior)){
-    model.res<-run_models(dataset = acs19_noraceeth, Kmax = Kmax,gamma=gamma1, 
-                          nChains= nChains, m= m, ClusterPrior= Kprior[i], wd = wd, 
-                          acsid = "acs19", burnin= burnin, heats = heatslist1[[heatsid[h]]], heatsid = heatsid[h])
-    #Keep swap acceptance rate
-    swap_rate2[h, i]<-model.res[[1]]$chainInfo[2]
-    res_acs19_noraceeth<-append(res_acs19_noraceeth, model.res)
-  }
-}
-
-output_noraceeth<- list(res_acs19_noraceeth,  "sar_priors"=swap_rate2)
-
+# acs19_noraceeth<- as.matrix(censusdata_bin$acs5_2019_bin)
+# res_acs19_noraceeth<-list()
+# swap_rate2<-matrix(1, nrow = 3 , ncol= 2)
+# row.names(swap_rate2)<-heatsid
+# colnames(swap_rate2)<-c("acs19_Kpoi", "acs19_Kunif")
+# for (h in 1:length(heatslist1)){
+#   #change prior settings
+#   for (i in 1:length(Kprior)){
+#     model.res<-run_models(dataset = acs19_noraceeth, Kmax = Kmax,gamma=gamma1, 
+#                           nChains= nChains, m= m, ClusterPrior= Kprior[i], wd = wd, 
+#                           acsid = "acs19", burnin= burnin, heats = heatslist1[[heatsid[h]]], heatsid = heatsid[h])
+#     #Keep swap acceptance rate
+#     swap_rate2[h, i]<-model.res[[1]]$chainInfo[2]
+#     res_acs19_noraceeth<-append(res_acs19_noraceeth, model.res)
+#   }
+# }
+# 
+# output_noraceeth<- list(res_acs19_noraceeth,  "sar_priors"=swap_rate2)
+# 
 
 
 #SAVE OUTPUT
-saveRDS(output_noraceeth, "/n/home03/crodriguezcabrera/ecbayesbinmix/acs19_noraceeth_priors.rds")
-saveRDS(output_raceeth, "/n/home03/crodriguezcabrera/ecbayesbinmix/acs19_raceeth_priors.rds")
+#saveRDS(output_noraceeth, "/n/home03/crodriguezcabrera/ecbayesbinmix/acs19_noraceeth_priors.rds")
+#saveRDS(output_raceeth, "/n/home03/crodriguezcabrera/ecbayesbinmix/acs19_raceeth_priors.rds")
+
+
+## 2.1. Explore the effect of prior settings-- for the other ACS 2006-2010 and 2011-2015 with race/ethnicity
+datasets_raceeth<- list(acs10=as.matrix(censusdata_bin2$acs5_2010_bin),acs15=as.matrix(censusdata_bin2$acs5_2015_bin))
+acsid<- c("acs10","acs15")
+
+#Run and save output with race/ethnicity
+res_raceeth<-list()
+swap_rate1<-matrix(1, nrow = 3 , ncol= 2)
+row.names(swap_rate1)<-heatsid
+colnames(swap_rate1)<-acsid
+for (h in 1:length(heatslist1)){
+  #change prior settings
+  for (i in 1:2){
+    model.res<-run_models(dataset = datasets_raceeth[[acsid[i]]], Kmax = Kmax,gamma=gamma1, 
+                          nChains= nChains, m= m, ClusterPrior= "poisson", wd = wd, 
+                          acsid = acsid[i], burnin= burnin, heats = heatslist1[[heatsid[h]]], heatsid = heatsid[h])
+    #Keep swap acceptance rate
+    swap_rate1[h, i]<-model.res[[1]]$chainInfo[2]
+    res_raceeth<-append(res_raceeth, model.res)
+  }
+}
+
+output_raceeth<- list(res_raceeth,  "sar_priors"=swap_rate1)
+
+#Run and save output without race/ethnicity
+res_noraceeth<-list()
+swap_rate2<-matrix(1, nrow = 3 , ncol= 2)
+row.names(swap_rate2)<-heatsid
+colnames(swap_rate2)<-acsid
+for (h in 1:length(heatslist1)){
+  #change prior settings
+  for (i in 1:2){
+    model.res<-run_models(dataset = datasets_noraceeth[[acsid[i]]], Kmax = Kmax,gamma=gamma1, 
+                          nChains= nChains, m= m, ClusterPrior= "poisson", wd = wd, 
+                          acsid = acsid[i], burnin= burnin, heats = heatslist1[[heatsid[h]]], heatsid = heatsid[h])
+    #Keep swap acceptance rate
+    swap_rate2[h, i]<-model.res[[1]]$chainInfo[2]
+    res_noraceeth<-append(res_noraceeth, model.res)
+  }
+}
+
+output_noraceeth<- list(res_noraceeth,  "sar_priors"=swap_rate2)
+
+
+#SAVE OUTPUT
+saveRDS(output_noraceeth, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model Outputs/acs2waves_noraceeth_priors.rds")
+saveRDS(output_raceeth, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model Outputs/acs2waves_raceeth_priors.rds")
+
 
