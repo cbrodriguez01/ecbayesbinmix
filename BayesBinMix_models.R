@@ -506,8 +506,6 @@ p_19_group2
 dev.off()
 
 
-
-
 ###########################################################################
 #     Output from 6/10/24 including ethnic minority
 ###########################################################################
@@ -550,10 +548,10 @@ mapK<-Mode(res1_acs19$K.mcmc)[1]
 #Class probabilities
 stats<-cbind(summary(res1_acs19$parameters.ecr.mcmc)$statistics[,c(1,2)], summary(res1_acs19$parameters.ecr.mcmc)$quantiles[,c(1,5)])
 tail(stats, mapK) %>% kable()
-#Mixing weights are prerry good!
+#Mixing weights are pretty good!
 
 ##--Explore cluster assignment based on ECR algorithm + Distribution of census variables across clusters
-#For ACS 2019 and mapK = 13
+#For ACS 2019 and mapK = 10
 classificationprobs_19<-res1_acs19$classificationProbabilities.ecr
 # Add cluster classification based on maximum and 2nd highest probability 
 maxProb<-apply(classificationprobs_19, 1, max)
@@ -641,6 +639,7 @@ p_19_group2<-plot_thetakj_group(prob_est_long = dat_19,color_palette = group_col
 p_19_group
 p_19_group2
 
+#####LATEST MODELS--TO BE USED FOR MANUSCRIPT#####
 ###########################################################################
 #     Output from models exploring the sensitivity of prior settings
 #Here we will focus on ACS 2015-2019
