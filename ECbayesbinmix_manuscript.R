@@ -130,6 +130,9 @@ table4exporta<-print(table4papera, showAllLevels = TRUE, formatOptions = list(bi
 #Export
 write.csv(table4export, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3.csv")
 write.csv(table4exporta, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3a.csv")
+#keep column percentages
+table4export_cols<-print(table4papera, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+write.csv(table4export_cols, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3a_cols.csv")
 
 
 #---LOGISTIC REGRESSION MODELS-----#
