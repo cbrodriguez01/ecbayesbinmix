@@ -241,12 +241,19 @@ dat_19<-preparedat_fig(res19_poi,mapK_poi,sesvars)
 #Remove cluster 5 and relabel
 dat_19_8clust<- dat_19 %>%  filter( cluster != 5)
 dat_19_8clust$cluster<- rep(1:8, each = 18)
+
+# dat_19_8clust$cluster<- factor(dat_19_8clust$cluster, levels = 1:8, labels = c(
+#   "Cluster 1: 401", "Cluster 2: 76", "Cluster 3: 378", "Cluster 4: 100",
+#   "Cluster 5: 109", "Cluster 6: 87", "Cluster 7: 142", "Cluster 8: 185"))
+# 
+
 dat_19_8clust$cluster<- factor(dat_19_8clust$cluster, levels = 1:8, labels = c(
-  "Cluster 1: 401", "Cluster 2: 76", "Cluster 3: 378", "Cluster 4: 100",
-  "Cluster 5: 109", "Cluster 6: 87", "Cluster 7: 142", "Cluster 8: 185"))
+  "All High(n = 401)", "Low-Mod (n = 76)", "All Mod (n = 378)", "Split-Ed (n = 100)",
+  "Mod- Low (n =109)", "All Mod (n =87)", "HM-MH (n =142)", "LH-HL (n=185)"))
+
 
 # Generate plot
-barplot<-dat_19_8clust %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
+barplot<-dat_19_8clust  %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
   geom_col()  +
   facet_wrap(~cluster, nrow = 9, ncol = 1) + 
   scale_fill_manual(values = group_cols) + 
@@ -284,10 +291,34 @@ barplot1<-dat_19_8clust %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_
         plot.title = element_text(hjust = 0.5))
 
 
-png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot19_2cols.png", width = 1100, height = 1000)
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot19_2cols_labeled.png", width = 1100, height = 1000)
 barplot1
 dev.off()
 
+
+#No coloring by domain
+
+barplot2<-dat_19_8clust %>% ggplot(aes(x = NSES_VARS, y = theta_kj )) +
+  geom_col(fill = "#1f77b4")  +
+  facet_wrap(~cluster, nrow = 5, ncol = 2) + 
+  #scale_fill_manual(values = group_cols) + 
+  labs(title = fig_title, x= "",
+       y = "Probability",
+       fill = "Neighborhood SDoH Variables") +
+  theme(strip.text = element_text(size = 14),
+        text = element_text(size = 16),
+        axis.text.x = element_text(size=16, angle=90, vjust = 0.88, hjust = 0.88), 
+        #axis.title.x = element_text(size = 18, color = "black", face = "bold"),
+        axis.title.y = element_text(size = 16, color = "black", face = "bold"),
+        axis.text.y = element_text(size=12), 
+        legend.title = element_text(size = 16, color = "black", face = "bold"),
+        legend.text = element_text(size = 16, color = "black"),
+        legend.position = "top",
+        plot.title = element_text(hjust = 0.5))
+
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot19_2cols_labeled_1col.png", width = 1100, height = 1000)
+barplot2
+dev.off()
 
 ### Map showing the distribution 
 temp<-get_acs(state = "MA", geography = "tract", 

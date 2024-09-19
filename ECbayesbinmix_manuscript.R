@@ -162,11 +162,12 @@ tab_model(model_freq,  p.style = "stars",
 #                  family = binomial(link = "logit"), seed = 2004)
 
 
-ehrcensus19a$optimal_care_recode<- as.numeric(ehrcensus19a$optimal_care)
+ehrcensus19a$optimal_care_recode<- as.numeric(ehrcensus19a$optimal_care) #1/2 ; here 2 is optimal (=1)
 ehrcensus19a$optimal_care_recode <-ifelse(ehrcensus19a$optimal_care_recode == 1, 0,1)
 
 model_bayes<-brm(optimal_care_recode ~ ClusterAssignmentr  + yeardx  + age_dx_cat + 
-                            insurance_status  + facility_type1_cat_1, 
+                            insurance_status  + facility_type1_cat_1 + facility_size1 +
+                 facility_docspecialty1,
                  data = ehrcensus19a,
                  family = bernoulli(link='logit'), 
                  warmup = 500, 
@@ -191,13 +192,33 @@ mcmc_plot(model_bayes,
 #Bayesian binary logistic regression model
 summary(model_bayes)
 est<-round(exp(fixef(model_bayes)[-1,-2]), 3)
-#
+est_dat<- as.data.frame(est[1:7,])
+est_dat$NSDOH_prof<-2:8
+est_dat$NSDOH_prof<-factor(est_dat$NSDOH_prof, levels = 2:8, labels = c("Low-Mod",
+"All Low", "Split-Ed","Mod-Low", "All Mod", "HM-MH", "LH-HL"))
+
+
+#est_dat$NSDOH_prof <- relevel(est_dat$NSDOH_prof, ref =  "All Low")
 
 
 #Plot
-ggplot(aes(x = SCHOOLID, y = Estimate, col = Contain_Zero)) +
-  geom_point() +
-  geom_errorbar(aes(ymin=Q2.5, ymax=Q97.5)) +
-  facet_grid(. ~ Variable, scale = "free") +
-  coord_flip() +
-  theme(legend.position = "top")
+model_plot<-ggplot(est_dat, aes(x = Estimate, y = NSDOH_prof)) +
+  geom_point(size = 4, color = "blue") +  # Odds ratios as points
+  geom_errorbarh(aes(xmin = Q2.5, xmax = Q97.5), height = 0.2, color = "black", size = 0.75) +  # Credible intervals
+  theme_minimal() +
+ theme_minimal() +
+  theme(axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1)) +
+  labs(y = "NSDoH Profiles",x = "Odds Ratio") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red")  # Reference line at OR = 1
+
+
+
+
+
+
+ggsave(filename = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot.svg")
+jpeg("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot.jpeg", width = 500, height = 500)
+model_plot
+dev.off()
