@@ -207,15 +207,33 @@ dat19_clusters_poi<- classificationprobs_poi %>% select(GEOID,ClusterAssignment_
 
 #Box plots
 #Distribution of assignment probabilities to the most probable cluster
+#rename from cluster to profile:
+levels(dat19_clusters_poi$ClusterAssignment_recoded)<- paste0("Profile",sep= " ", 1:8)
+
+
+
 boxplot19<-dat19_clusters_poi %>%  ggplot(aes(x = ClusterAssignment_recoded, y = maxProb_updated, fill = ClusterAssignment_recoded)) +
   geom_boxplot() +
   labs(fill = "Cluster Assignment", 
        y = "Assignment Probability after ECR algorithm", 
        x= "") +
   theme_classic() +
-  theme(legend.position = "none") 
+  theme(legend.position = "none",
+       text = element_text(size = 16),
+      #axis.title.x = element_text(size = 18, color = "black", face = "bold"),
+      axis.title.y = element_text(size = 16, color = "black"),
+      axis.text.y = element_text(size=12), 
+      axis.text.x = element_text(size=12))
+        
+        
+        
+        
+         
 
 boxplot19
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/boxplot19_profile.png", width = 651, height = 604)
+boxplot19
+dev.off()
 
 dattable19<-dat19_clusters_poi %>% rename(`Average Assignment Probability (ECR Algorithm)` = maxProb_updated,
                                       `Cluster Assignment` = ClusterAssignment_recoded) 
