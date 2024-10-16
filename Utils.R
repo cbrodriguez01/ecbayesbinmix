@@ -44,6 +44,44 @@ generate_pastel_colors <- function(n_ses){
 #' @param sesvars vector with variable names 
 #' @return a long-format dataset to be the input for profile figures
 
+# preparedat_fig<-function(reslst,mapK, sesvars){
+#   n_ses<-length(sesvars)
+#   dim<-n_ses*mapK
+#   stats<-summary(reslst$parameters.ecr.mcmc)$statistics[,1] #get the mean, can also get SE and quantiles 
+#   
+#   temp<-as.data.frame(stats[1:dim])
+#   
+#   probs<-c()
+#   indices <- seq(1, nrow(temp) * 1, by = mapK)
+#   for (k in indices){
+#     v<- temp[k:((k+mapK)-1),]
+#     probs<-cbind(probs, v)
+#   }
+#   
+#   prob_est<-cbind(1:mapK,probs)
+#   colnames(prob_est)<-c("cluster",sesvars)
+#   
+#   #Long format for ggplot
+#   prob_est_long<- prob_est %>% as.data.frame() %>% 
+#     pivot_longer(!cluster, names_to = "NSES_VARS",values_to = "theta_kj")
+#   
+#   # Group variables
+#   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
+#     NSES_VARS %in% c("Crowded housing","Lack complete plumbing", "No vehicle","Owner-occupied","Renter-occupied", "Female household") ~ 1,
+#     NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 2,
+#     NSES_VARS %in% c("Unemployment","Working class") ~ 4,
+#     NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits") ~ 3,
+#     NSES_VARS %in% c("Hispanic or Latino", "NH Black", "NH Asian", "Limited EN Proficiency") ~ 5,))
+#   
+#   
+#   prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:5, labels = c("Household", "Education", "Income", "Occupation", "Ethnic Minorities and Language"))
+#   
+#   
+#   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
+#   
+#   return(prob_est_long)
+# }
+
 preparedat_fig<-function(reslst,mapK, sesvars){
   n_ses<-length(sesvars)
   dim<-n_ses*mapK
@@ -67,20 +105,22 @@ preparedat_fig<-function(reslst,mapK, sesvars){
   
   # Group variables
   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
-    NSES_VARS %in% c("Crowded housing","Lack complete plumbing", "No vehicle","Owner-occupied","Renter-occupied", "Female household") ~ 1,
-    NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 2,
-    NSES_VARS %in% c("Unemployment","Working class") ~ 4,
-    NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits") ~ 3,
-    NSES_VARS %in% c("Hispanic or Latino", "NH Black", "NH Asian", "Limited EN Proficiency") ~ 5,))
+    NSES_VARS %in% c("Owner-occupied housing","Renter-occupied housing", "Crowded housing","Lack complete plumbing", "No vehicle") ~ 1,
+    NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 3,
+    NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits", "Unemployment","Working class") ~ 2,
+    NSES_VARS %in% c("Female household", "Limited EN Proficiency", "Hispanic/Latino", "NH Black", "NH Asian") ~ 4,))
   
   
-  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:5, labels = c("Household", "Education", "Income", "Occupation", "Ethnic Minorities and Language"))
+  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Household wealth", "Economic security", "Educational attainment", "Sociocultural proxies"))
   
   
   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
   
   return(prob_est_long)
 }
+
+
+
 
 
 

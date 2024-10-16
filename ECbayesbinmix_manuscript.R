@@ -2,7 +2,7 @@
 #EC data and ACS wave 2015-2019, 
 #but will also look at 2006-2010 and explore changes
 #Author: Carmen Rodriguez
-#Last Updated: 8/12/24
+#Last Updated: 10/13/24
 #=======================================================
 library(tidyverse)
 library(ggplot2)
@@ -80,7 +80,7 @@ table(ehrdata_19$yeardx)
 
 
 #------CENSUS DATA  with clusters only-------
-data19<-readRDS("./Data/mbmm_clusters_19eth.rds")
+data19<-readRDS("./Data/mbmm_clusters_19eth_sized.rds")
 data19$census_tract<-str_sub(data19$GEOID,start=6, end = 11) 
 data19$countycode<-str_sub(data19$GEOID,start=3, end = 5)
 
@@ -99,40 +99,61 @@ rmv<- which(!(ehrcensus19$countycode.x == ehrcensus19$countycode.y))
 #Final
 ehrcensus19a<- ehrcensus19 %>% filter(row_number() %!in%  rmv)
 
+
+
+
+
 #Tables
-variables<- c("race_eth_recode", "nativity", "age_dx_cat","insurance_status","trt_summary_overall",
+variables<- c("race_eth_recode", "nativity","yeardx_fct", "age_dx_cat","insurance_status","trt_summary_overall",
               "type_surg_received", "radiation_yn", "Rad_Reg_Rx_Mod_cat", "chemo_yn",
               "FIGOStage", "Grade_cat", "facility_type1_cat_1", "facility_size1",
-              "facility_docspecialty1", "ClusterAssignment_recoded")
-variablesn<- c("race_eth_recode", "nativity", "age_dx_cat","insurance_status","trt_summary_overall",
+              "facility_docspecialty1", "nsdop_profiles")
+
+variablesn<- c("optimal_care","race_eth_recode", "nativity", "yeardx_fct", "age_dx_cat","insurance_status","trt_summary_overall",
                "type_surg_received", "radiation_yn", "Rad_Reg_Rx_Mod_cat", "chemo_yn",
                "FIGOStage", "Grade_cat", "facility_type1_cat_1", "facility_size1",
-               "facility_docspecialty1", "optimal_care")
+               "facility_docspecialty1")
 
 table4paper<-CreateTableOne(vars = variables,strata = "optimal_care", data = ehrcensus19a, factorVars = variables, includeNA= T, addOverall = T )
+
+#For row %
 for (i in 1:length(variables)) {
   sum = table4paper$CatTable[[2]][[i]]$freq + table4paper$CatTable[[3]][[i]]$freq
   table4paper$CatTable[[2]][[i]]$percent = (table4paper$CatTable[[2]][[i]]$freq / sum)*100
   table4paper$CatTable[[3]][[i]]$percent = (table4paper$CatTable[[3]][[i]]$freq / sum)*100
 }
+table4export_row<-print(table4paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
 
-table4export<-print(table4paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+##Table B1-column percentages again
+table4export_col<-print(table4paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
 
 
-table4papera<-CreateTableOne(vars = variablesn,strata = "ClusterAssignment_recoded", data = ehrcensus19a, factorVars = variablesn, includeNA= T, addOverall = T)
-for (i in 1:length(variablesn)) {
-  sum = table4papera$CatTable[[1]][[i]]$freq 
-  for(j in 2:9){
-    table4papera$CatTable[[j]][[i]]$percent = (table4papera$CatTable[[j]][[i]]$freq / sum)*100
-  }}
-table4exporta<-print(table4papera, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+table4papera<-CreateTableOne(vars = variablesn,strata = "nsdop_profiles", data = ehrcensus19a, factorVars = variablesn, includeNA= T, addOverall = T)
+##uncomment for row
+# for (i in 1:length(variablesn)) {
+#   sum = table4papera$CatTable[[1]][[i]]$freq 
+#   for(j in 2:9){
+#     table4papera$CatTable[[j]][[i]]$percent = (table4papera$CatTable[[j]][[i]]$freq / sum)*100
+#   }}
+#table4exporta<-print(table4papera, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
 
 #Export
-write.csv(table4export, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3.csv")
-write.csv(table4exporta, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3a.csv")
-#keep column percentages
+write.csv(table4export_row, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3_row.csv")
+write.csv(table4export_col, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3_col.csv")
+#write.csv(table4exporta, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3a.csv")
+
+#keep column percentages for Table 2
 table4export_cols<-print(table4papera, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
-write.csv(table4export_cols, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3a_cols.csv")
+write.csv(table4export_cols, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Table1/tab3a_cols_10.13.csv")
+
+
+##Table B1-column percentages again
+#tabb1<-table1::table1( ~ race_eth_recode +  nativity + yeardx_fct + age_dx_cat + insurance_status +
+#                        type_surg_received + Rad_Reg_Rx_Mod_cat + chemo_yn +
+#                        FIGOStage+Grade_cat+facility_type1_cat_1+facility_size1 +
+#                        facility_docspecialty1 |optimal_care, data = ehrcensus19a, overall = F)
+# tabb1
+
 
 
 #---LOGISTIC REGRESSION MODELS-----#
@@ -146,10 +167,11 @@ library(sjPlot)
 library(sjmisc)
 library(sjlabelled)
 
-ehrcensus19a$ClusterAssignmentr <- relevel(ehrcensus19a$ClusterAssignment_recoded , ref= 1)
+ehrcensus19a$nsdop_profilesr <- relevel(ehrcensus19a$nsdop_profiles , ref= "Profile 1")
 
-model_freq<-glm(optimal_care ~ ClusterAssignmentr  + yeardx  + age_dx_cat + 
-                  insurance_status  + facility_type1_cat_1 ,family=binomial(link='logit'),data= ehrcensus19a)
+model_freq<-glm(optimal_care ~ nsdop_profilesr  + yeardx  + age_dx_cat + 
+                  insurance_status  + facility_type1_cat_1  + facility_size1 +
+                  facility_docspecialty1 ,family=binomial(link='logit'),data= ehrcensus19a)
 summary(model_freq)
 
 tab_model(model_freq,  p.style = "stars",
@@ -165,7 +187,7 @@ tab_model(model_freq,  p.style = "stars",
 ehrcensus19a$optimal_care_recode<- as.numeric(ehrcensus19a$optimal_care) #1/2 ; here 2 is optimal (=1)
 ehrcensus19a$optimal_care_recode <-ifelse(ehrcensus19a$optimal_care_recode == 1, 0,1)
 
-model_bayes<-brm(optimal_care_recode ~ ClusterAssignmentr  + yeardx  + age_dx_cat + 
+model_bayes<-brm(optimal_care_recode ~ nsdop_profilesr + yeardx  + age_dx_cat + 
                             insurance_status  + facility_type1_cat_1 + facility_size1 +
                  facility_docspecialty1,
                  data = ehrcensus19a,
@@ -194,8 +216,7 @@ summary(model_bayes)
 est<-round(exp(fixef(model_bayes)[-1,-2]), 3)
 est_dat<- as.data.frame(est[1:7,])
 est_dat$NSDOH_prof<-2:8
-est_dat$NSDOH_prof<-factor(est_dat$NSDOH_prof, levels = 2:8, labels = c("Low-Mod",
-"All Low", "Split-Ed","Mod-Low", "All Mod", "HM-MH", "LH-HL"))
+est_dat$NSDOH_prof<-factor(est_dat$NSDOH_prof, levels = 2:8, labels = paste0("Profile",sep= " ", 2:8))
 
 
 #est_dat$NSDOH_prof <- relevel(est_dat$NSDOH_prof, ref =  "All Low")
@@ -219,6 +240,6 @@ model_plot<-ggplot(est_dat, aes(x = Estimate, y = NSDOH_prof)) +
 
 
 ggsave(filename = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot.svg")
-jpeg("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot.jpeg", width = 500, height = 500)
+jpeg("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot_ordered.jpeg", width = 500, height = 500)
 model_plot
 dev.off()
