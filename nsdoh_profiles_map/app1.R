@@ -1,6 +1,5 @@
 
 library(tidyverse)
-library(tidycensus)
 library(shiny)
 library(leaflet)
 library(tigris)
@@ -15,7 +14,7 @@ tracts1<-tracts1 %>% mutate(NAME1 = sub(",?\\s*Massachusetts", "", NAME))
 
 #Merge with profiles
 profiles<-readRDS("./nsdoh_profiles_map/nsdoh_data.rds") # data containig profiles for each census tracts. Also, added county labels
-profiles <- profiles %>% select("GEOID","nsdoh_profiles")
+profiles <- profiles %>% select("GEOID","nsdop_profiles")
                                 #, "CountyName",)
 #profiles1 <- profiles %>% mutate(countyname = sub(",.*", "", CountyName))
 
@@ -28,7 +27,7 @@ pal <- colorFactor(
               "#9467bd","#2ca02c",
               "#e377c2",  "#17becf", 
               "#1f77b4", "#ffff00"),   # Colors corresponding to factor levels
-  domain = map19$nsdoh_profiles
+  domain = map19$nsdop_profiles
 )
 
 
@@ -37,7 +36,16 @@ pal <- colorFactor(
 # Define UI for application
 ui <- fluidPage(
   titlePanel("Massachusetts NSDoH Profiles"),
-  leafletOutput("map", width = "100%", height = "800px")
+  fluidRow(
+    column(
+      width = 8,
+      leafletOutput("map", width = "100%", height = "600px")
+    ),
+    column(
+      width = 4,
+      plotOutput("barplot", height = "400px")
+    )
+  )
 )
 
 # Define server logic required to draw the map
@@ -52,10 +60,10 @@ server <- function(input, output, session) {
   output$map <- renderLeaflet({
     leaflet(map19 %>% sf::st_transform('+proj=longlat +datum=WGS84')) %>%
       addTiles() %>% 
-      addPolygons(fillColor = ~pal(nsdoh_profiles),  # Set the fill color to profile colors
+      addPolygons(fillColor = ~pal(nsdop_profiles),  # Set the fill color to profile colors
         color = "white", weight = 0.5, opacity = 1, fillOpacity = 0.5,  # No fill color, transparent polygons
         highlight = highlightOptions(weight = 5, color = "#666", fillOpacity = 0.3),  # Highlight on hover
-        label =~paste(NAME1, ":", nsdoh_profiles), #show county name: census tract: profile assignment
+        label =~paste(NAME1, ":", nsdop_profiles), #show county name: census tract: profile assignment
         labelOptions = labelOptions(direction = "auto")) %>%
      # setMaxBounds(
       #  lng1 = massachusetts_bounds$lng1, lat1 = massachusetts_bounds$lat1,
@@ -65,19 +73,48 @@ server <- function(input, output, session) {
       addLegend(
       position = "topright",
       pal = pal,
-      values = map19$nsdoh_profiles,
+      values = map19$nsdop_profiles,
       title = "NSDoH Profile")
   })
+  
+  # Observe hover events to update the bar plot
+  observeEvent(input$map_shape_mouseover, {
+    censustract_name <- input$map_shape_mouseover$id  # Get the hovered name
+    
+    # Filter the data for the selected census tract
+    selected_ct<- map19[map19$NAME1 == censustract_name, ]
+    
+    # Extract the profile for the bar plot
+    if (nrow(selected_ct) > 0) {
+      profile_ct <- unlist(strsplit(selected_county$age_group, ","))
+      age_data <- as.data.frame(table(age_groups))
+      
+      # Render the bar plot
+      output$barplot <- renderPlot({
+        ggplot(age_data, aes(x = age_groups, y = Freq, fill = selected_county$pop_category)) +
+          geom_bar(stat = "identity") +
+          scale_fill_manual(values = c("Low" = "green", "Medium" = "yellow", "High" = "red")) +
+          labs(title = paste("Age Group Distribution in", county_name),
+               x = "Age Group", y = "Frequency") +
+          theme_minimal() +
+          theme(legend.position = "none")
+      })
+    }
+  })
+  
+  
 }
 
 
 # Run the application 
 shinyApp(ui = ui, server = server)
 
+addProviderTiles(providers$Stamen.TonerLite)
 
 # Things to add
 # - panel with the barplot with posterior probability estimates
 # - consider making a column instead of a tab
+# - make a data frame with model results and paste code from ggplot to generate model results
 # - match colors in the map to the barplot
 
 

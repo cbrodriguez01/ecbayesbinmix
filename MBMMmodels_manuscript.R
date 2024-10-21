@@ -196,6 +196,8 @@ dat_19_8clust$cluster_size<- factor(dat_19_8clust$cluster_size, levels = 1:8, la
   "Profile 1 (n = 401)", "Profile 2 (n = 378)", "Profile 3 (n = 185)", "Profile 4 (n=142)",
   "Profile 5 (n =109)", "Profile 6 (n =100)", "Profile 7 (n =87)", "Profile 8 (n = 76)"))
 
+saveRDS(dat_19_8clust,"/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/nsdoh_profiles_map/mbmm_result.rds")
+
 
 # Generate plot
 barplot<-dat_19_8clust  %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
