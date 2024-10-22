@@ -1,5 +1,8 @@
+#Latest Version
+
 
 library(tidyverse)
+library(tidycensus)
 library(shiny)
 library(leaflet)
 library(tigris)
@@ -14,10 +17,9 @@ tracts1<-tracts1 %>% mutate(NAME1 = sub(",?\\s*Massachusetts", "", NAME))
 
 #Merge with profiles
 profiles<-readRDS("./nsdoh_profiles_map/nsdoh_data.rds") # data containig profiles for each census tracts. Also, added county labels
-profiles <- profiles %>% select("GEOID","nsdop_profiles")
-                                #, "CountyName",)
+profiles <- profiles %>% select("GEOID","nsdoh_profiles")
+ 
 #profiles1 <- profiles %>% mutate(countyname = sub(",.*", "", CountyName))
-
 
 map19<- merge(tracts1, profiles, by = "GEOID")
 
@@ -27,15 +29,21 @@ pal <- colorFactor(
               "#9467bd","#2ca02c",
               "#e377c2",  "#17becf", 
               "#1f77b4", "#ffff00"),   # Colors corresponding to factor levels
-  domain = map19$nsdop_profiles
+  domain = map19$nsdoh_profiles
 )
 
-
-#mbmm<-readRDS("./nsdoh_profiles_map/mbmm_result.rds")
-
+##Prepare results from mbmm 
+mbmm<-readRDS("./nsdoh_profiles_map/mbmm_result.rds")
+#remember that we organized clusters by size
+mbmm$nsdoh_profile<- factor(mbmm$cluster, levels = 1:8,
+                            labels = c("Profile 1", "Profile 8", "Profile 2",
+                                       "Profile 6", "Profile 5", "Profile 7",
+                                       "Profile 4", "Profile 3"))
+                              
+                              
 # Define UI for application
 ui <- fluidPage(
-  titlePanel("Massachusetts NSDoH Profiles"),
+  titlePanel("Massachusetts Neighborhood Social Determinants of Health (NSDoH) Profiles"),
   fluidRow(
     column(
       width = 8,
@@ -51,70 +59,65 @@ ui <- fluidPage(
 # Define server logic required to draw the map
 server <- function(input, output, session) {
   
-  # # Define Massachusetts bounding box (Longitude and Latitude coordinates)
-  # massachusetts_bounds <- list(
-  #   lng1 = -73.508142, lat1 = 41.237964,  # Southwest corner of Massachusetts
-  #   lng2 = -69.928393, lat2 = 42.886589   # Northeast corner of Massachusetts
-  # )
-  # 
   output$map <- renderLeaflet({
     leaflet(map19 %>% sf::st_transform('+proj=longlat +datum=WGS84')) %>%
       addTiles() %>% 
-      addPolygons(fillColor = ~pal(nsdop_profiles),  # Set the fill color to profile colors
+      addPolygons(fillColor = ~pal(nsdoh_profiles),  # Set the fill color to profile colors
         color = "white", weight = 0.5, opacity = 1, fillOpacity = 0.5,  # No fill color, transparent polygons
         highlight = highlightOptions(weight = 5, color = "#666", fillOpacity = 0.3),  # Highlight on hover
-        label =~paste(NAME1, ":", nsdop_profiles), #show county name: census tract: profile assignment
+        layerId = ~NAME1,  # Set layerId to NAME1 to ensure that input$map_shape_mouseover$id captures the ID of the hovered census tract.
+        label =~paste(NAME1, ":", nsdoh_profiles), #show county name: census tract: profile assignment
         labelOptions = labelOptions(direction = "auto")) %>%
-     # setMaxBounds(
-      #  lng1 = massachusetts_bounds$lng1, lat1 = massachusetts_bounds$lat1,
-     #   lng2 = massachusetts_bounds$lng2, lat2 = massachusetts_bounds$lat2) %>%
       # Center the map on Massachusetts 
       setView(lng = -71.3824, lat = 42.4072, zoom = 8)  %>% 
       addLegend(
       position = "topright",
       pal = pal,
-      values = map19$nsdop_profiles,
+      values = map19$nsdoh_profiles,
       title = "NSDoH Profile")
   })
   
   # Observe hover events to update the bar plot
   observeEvent(input$map_shape_mouseover, {
     censustract_name <- input$map_shape_mouseover$id  # Get the hovered name
+    print(input$map_shape_mouseover$id)
     
     # Filter the data for the selected census tract
-    selected_ct<- map19[map19$NAME1 == censustract_name, ]
-    
-    # Extract the profile for the bar plot
-    if (nrow(selected_ct) > 0) {
-      profile_ct <- unlist(strsplit(selected_county$age_group, ","))
-      age_data <- as.data.frame(table(age_groups))
+    selected_tract <- map19 %>% filter(NAME1 == censustract_name)
+    selected_ct_profile<- selected_tract$nsdoh_profiles
+    #print(selected_ct_profile)
+
+  
+    # Check if a valid census tract was found
+    if (nrow(selected_tract) > 0) {
+      tract_profile_mbmm <- mbmm %>% filter(nsdoh_profile == selected_ct_profile)
       
-      # Render the bar plot
+   # Render the bar plot
       output$barplot <- renderPlot({
-        ggplot(age_data, aes(x = age_groups, y = Freq, fill = selected_county$pop_category)) +
-          geom_bar(stat = "identity") +
-          scale_fill_manual(values = c("Low" = "green", "Medium" = "yellow", "High" = "red")) +
-          labs(title = paste("Age Group Distribution in", county_name),
-               x = "Age Group", y = "Frequency") +
-          theme_minimal() +
-          theme(legend.position = "none")
+          group_cols<-c("#1f77b4","#2ca02c","salmon1", "#e377c2")
+          ggplot(tract_profile_mbmm,aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
+          geom_col()  +
+          scale_fill_manual(values = group_cols) +
+          labs(title = selected_ct_profile, x= "", y = "Probability",fill = "Neighborhood SDoH Domains") +
+          theme_classic()+
+          theme(strip.text = element_text(size = 10),
+                text = element_text(size = 10),
+                axis.text.x = element_text(size=10, angle=90, vjust = 0.88, hjust = 0.88),
+                axis.title.y = element_text(size = 10, color = "black", face = "bold"),
+                axis.text.y = element_text(size=10),
+                legend.title = element_text(size = 8, color = "black", face = "bold"),
+                legend.text = element_text(size = 8, color = "black"),
+                legend.position = "bottom",
+                legend.direction = "vertical",
+                plot.title = element_text(hjust = 0.5)) +
+            guides(fill = guide_legend(nrow = 2))
       })
     }
-  })
-  
-  
+    })
 }
 
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-addProviderTiles(providers$Stamen.TonerLite)
-
-# Things to add
-# - panel with the barplot with posterior probability estimates
-# - consider making a column instead of a tab
-# - make a data frame with model results and paste code from ggplot to generate model results
-# - match colors in the map to the barplot
 
 
