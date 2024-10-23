@@ -107,11 +107,11 @@ preparedat_fig<-function(reslst,mapK, sesvars){
   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
     NSES_VARS %in% c("Owner-occupied housing","Renter-occupied housing", "Crowded housing","Lack complete plumbing", "No vehicle") ~ 1,
     NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 3,
-    NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits", "Unemployment","Working class") ~ 2,
-    NSES_VARS %in% c("Female household", "Limited EN Proficiency", "Hispanic/Latino", "NH Black", "NH Asian") ~ 4,))
+    NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits", "Unemployment","Working class","Female household") ~ 2,
+    NSES_VARS %in% c("Limited EN Proficiency", "Hispanic/Latino", "NH Black", "NH Asian") ~ 4,))
   
   
-  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Household wealth", "Economic security", "Educational attainment", "Sociocultural proxies"))
+  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Housing conditions and resources", "Economic security", "Educational attainment", "Sociocultural diversity"))
   
   
   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))

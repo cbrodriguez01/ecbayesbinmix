@@ -225,7 +225,7 @@ barplot1<-dat_19_8clust %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_
   scale_fill_manual(values = group_cols) + 
   labs(title = fig_title, x= "",
        y = "Probability",
-       fill = "Neighborhood SDoH Variables") +
+       fill = "Neighborhood SDoH Domains") +
   theme(strip.text = element_text(size = 14),
         text = element_text(size = 18),
         axis.text.x = element_text(size=16, angle=90, vjust = 0.88, hjust = 0.88), 
@@ -238,7 +238,7 @@ barplot1<-dat_19_8clust %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_
         plot.title = element_text(hjust = 0.5))
 
 
-png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot19_2cols_labeled_size.png", width = 1100, height = 1000)
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/barplot19_2cols_labeled_size2.png", width = 1200, height = 1000)
 barplot1
 dev.off()
 

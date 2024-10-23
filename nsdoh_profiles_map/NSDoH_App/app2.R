@@ -1,11 +1,11 @@
-#Latest Version
-
+#Latest Version with text
 library(tidyverse)
 library(tidycensus)
 library(shiny)
 library(leaflet)
 library(tigris)
 library(sp)
+
 
 # Load Massachusetts county shapefiles
 #tracts <- tigris::tracts(state = "MA", class = "sp", year = 2019)
@@ -43,10 +43,39 @@ mbmm$nsdoh_profile<- factor(mbmm$cluster, levels = 1:8,
 # Define UI for application
 ui <- fluidPage(
   titlePanel("Massachusetts Neighborhood Social Determinants of Health (NSDoH) Profiles"),
+  
+  # Top panel with two columns of text
+  fluidRow(
+    column(
+      width = 6, tags$p(
+        "Our study used 2015-2019 census tract-level social determinants of health (SDoH) data from the American Community Survey (ACS) in Massachusetts to create neighborhood profiles. 
+        We analyzed 18 SDoH indicators across four themes:    (1) housing conditions and resources, (2) economic security, (3) educational attainment, and (4) sociocultural diversity.",
+        style = "font-size: 18px;"  # Increased font size and bold text
+      ),
+      tags$p(
+        "The data presented here are the results of a fully Bayesian Multivariate Bernoulli Mixture Model (MBMM) used to estimate probabilities for profile assignment.",
+        style = "font-size: 18px;"  # Increased font size and bold text
+      )
+    ),
+    #Added the specified bullet points using tags$ul() and tags$li() for an unordered list.
+    column(
+      width = 6,
+      tags$h4("Additional Information",
+      style = "font-size: 18px; font-weight: bold;" ), # Increased font size and bold text
+      tags$ul(
+        tags$li("Zoom in to your desired area and hover over a location to view information on the census tract, county, and profile assignment.",
+        style = "font-size: 18px;"       ),
+        tags$li("The bar plot on the right shows the estimated posterior probability (from the MBMM) of high exposure to each of the 18 SDoH variables, grouped by domain, 
+                based on the assigned NSDoH profile.",
+        style = "font-size: 18px;")
+      )
+    )
+  ),
+  # Main content with map and bar plot
   fluidRow(
     column(
       width = 8,
-      leafletOutput("map", width = "100%", height = "600px")
+      leafletOutput("map", width = "100%", height = "500px")
     ),
     column(
       width = 4,
@@ -119,4 +148,5 @@ server <- function(input, output, session) {
 # Run the application 
 shinyApp(ui = ui, server = server)
 
-
+#library(rsconnect)
+#rsconnect::deployApp("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/nsdoh_profiles_map/NSDoH_App")
