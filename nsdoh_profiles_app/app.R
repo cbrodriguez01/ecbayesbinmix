@@ -107,8 +107,8 @@ ui <- fluidPage(
       tags$ul(
         tags$li("Zoom in to your desired area and hover over a location to view information on the census tract, county, and profile assignment.",
                 style = "font-size: 11px;"),
-        tags$li("Mouse hover to see the bar plot on the right with the estimated posterior probability (from the MBMM) of high exposure to each of 
-        the 18 SDoH variables, grouped by domain, 
+        tags$li("Mouse hover to see the bar plot on the right with the estimated posterior probability (from the MBMM) of high exposure to each of the 
+        SDoH indicators included in the model, grouped by domain, 
                 based on the assigned NSDoH profile.",
                 style = "font-size: 11px;")
       )
