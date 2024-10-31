@@ -2,9 +2,8 @@
 #Using BayesBinMix package on ACS Data
 #Latest models for manuscript--also used these results at ISBA
 #We will focus on latest ACS wave 2015-2019, 
-#but will also look at 2006-2010 and explore changes
 #Author: Carmen Rodriguez
-#Last Updated: 8/9/24
+#Last Updated: 10/30/24
 #=======================================================
 ##----Load packages----
 library(tidyverse)
@@ -29,6 +28,8 @@ library(geodaData)
 `%!in%` <- Negate(`%in%`)
 source("Utils.R") #Load aux functions
 
+
+###----Load Census Data to be used later
 censusdata_bin <- readRDS("./Data/censusdata_bin_raceeth_042524.rds")
 names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
 censusdata_bin_noraceeth<-readRDS("./Data/censusdata_bin_noraceeth_061024.rds")
@@ -196,7 +197,7 @@ dat_19_8clust$cluster_size<- factor(dat_19_8clust$cluster_size, levels = 1:8, la
   "Profile 1 (n = 401)", "Profile 2 (n = 378)", "Profile 3 (n = 185)", "Profile 4 (n=142)",
   "Profile 5 (n =109)", "Profile 6 (n =100)", "Profile 7 (n =87)", "Profile 8 (n = 76)"))
 
-saveRDS(dat_19_8clust,"/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/nsdoh_profiles_map/mbmm_result.rds")
+saveRDS(dat_19_8clust,"/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/nsdoh_profiles_app/mbmm_result.rds")
 
 
 # Generate plot
@@ -244,7 +245,6 @@ dev.off()
 
 
 #No coloring by domain
-
 barplot2<-dat_19_8clust %>% ggplot(aes(x = NSES_VARS, y = theta_kj )) +
   geom_col(fill = "#1f77b4")  +
   facet_wrap(~cluster, nrow = 5, ncol = 2) + 

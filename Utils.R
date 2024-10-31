@@ -111,7 +111,7 @@ preparedat_fig<-function(reslst,mapK, sesvars){
     NSES_VARS %in% c("Limited EN Proficiency", "Hispanic/Latino", "NH Black", "NH Asian") ~ 4,))
   
   
-  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Housing conditions and resources", "Economic security", "Educational attainment", "Sociocultural diversity"))
+  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Housing conditions and resources", "Economic security", "Educational attainment", "Social and community context"))
   
   
   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))

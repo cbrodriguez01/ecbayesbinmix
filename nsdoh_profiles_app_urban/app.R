@@ -5,6 +5,7 @@ library(shiny)
 library(leaflet)
 library(tigris)
 library(sp)
+library(sf)
 
 
 #------ Load Massachusetts county shapefiles
@@ -43,6 +44,11 @@ mbmm$nsdoh_profile<- factor(mbmm$cluster, levels = 1:8,
                                        "Profile 6", "Profile 5", "Profile 7",
                                        "Profile 4", "Profile 3"))
 
+#2020 Urban boundaries for MA from MA GIS Data Hub (https://gis.data.mass.gov)
+urban_boundaries <- st_read("./Urban_Boundaries_2020/Urban_Boundaries_2020.shp") %>% select(geometry)
+urban_boundaries1 <- urban_boundaries %>% sf::st_transform('+proj=longlat +datum=WGS84')
+#urban2<-urban_areas(year = 2019) --how GEOID10?
+
 
 # Define UI for application
 ui <- fluidPage(
@@ -50,8 +56,8 @@ ui <- fluidPage(
   
   # Top panel with two columns of text
   fluidRow(
-   column(
-     width = 10, 
+    column(
+      width = 10, 
       tags$p(
         "Our study used 2015-2019 census tract-level social determinants of health (SDoH) data 
         from the American Community Survey (ACS) to create neighborhood profiles.",
@@ -76,20 +82,21 @@ ui <- fluidPage(
     #             style = "font-size: 18px;")
     #   )
     # )
-#https://shiny.posit.co/r/articles/build/tag-glossary/
-   column(
-     width = 2,
-     tags$a(
-       href = "https://www.google.com",  # Replace with your study's link
-       target = "_blank",  # Opens in a new tab
-       class = "btn btn-primary",  # Bootstrap styling for a button
-       "View the Study",
-       
-     ),
-     style = "text-align: right; padding-top: 20px;"  # Align the button to the right
-   )
+    #https://shiny.posit.co/r/articles/build/tag-glossary/
+    column(
+      width = 2,
+      tags$a(
+        href = "https://www.google.com",  # Replace with your study's link
+        target = "_blank",  # Opens in a new tab
+        class = "btn btn-primary",  # Bootstrap styling for a button
+        "View the Study",
+        
+      ),
+      style = "text-align: right; padding-top: 20px;"  # Align the button to the right
+    )
   ),
   
+
   # Add space between the text and the map
   tags$hr(style = "margin-top: 20px; margin-bottom: 20px;"),
   
@@ -97,7 +104,9 @@ ui <- fluidPage(
   fluidRow(
     column(
       width = 8,
-      leafletOutput("map", width = "100%", height = "500px")
+      leafletOutput("map", width = "100%", height = "500px"),
+      #Add a check box for the urban layer underneath map
+      checkboxInput("show_urban", "Show Urban Boundaries 2020", value = FALSE)
     ),
     column(
       width = 4,
@@ -110,6 +119,8 @@ ui <- fluidPage(
         tags$li("Click to see the bar plot on the right with the estimated posterior probability (from the MBMM) of high exposure to each of the 
         SDoH indicators included in the model, grouped by domain, 
                 based on the assigned NSDoH profile.",
+                style = "font-size: 11px;"),
+        tags$li("Use check box to layer the 2020 urban boundaries for Massachusetts (MassGIS Data Hub).",
                 style = "font-size: 11px;")
       )
     )
@@ -135,6 +146,24 @@ server <- function(input, output, session) {
         pal = pal,
         values = map19$nsdoh_profiles,
         title = "NSDoH Profile")
+  })
+  
+  # Observe the checkbox input to add/remove urban boundaries layer
+  observe({
+    proxy <- leafletProxy("map")  # Use leafletProxy to modify the existing map
+    
+    if (input$show_urban) {
+      # Add urban boundaries layer
+      proxy %>%
+        addPolygons(
+          data = urban_boundaries1,
+          color = "black", weight = 2, opacity = 0.7, fill = FALSE,
+          group = "Urban Boundaries"
+        ) #the name of the group the newly created layers should belong to
+    } else {
+      # Remove urban boundaries layer
+      proxy %>% clearGroup("Urban Boundaries")
+    }
   })
   
   # Observe hover events to update the bar plot
