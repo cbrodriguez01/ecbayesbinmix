@@ -2,7 +2,7 @@
 #EC data and ACS wave 2015-2019, 
 #but will also look at 2006-2010 and explore changes
 #Author: Carmen Rodriguez
-#Last Updated: 10/13/24
+#Last Updated: 11/15/2024
 #=======================================================
 library(tidyverse)
 library(ggplot2)
@@ -61,10 +61,13 @@ table(ehrdata_countyfips$race_eth_recode)
 
 #Other pre-processing
 table(ehrdata_countyfips$RX_Summ_Surg_Primary_Site_c)
-ehrdata_countyfips$type_surg_received<-ifelse(ehrdata_countyfips$RX_Summ_Surg_Primary_Site_c %in% c("Other Surgery","Unknown"), 4, ehrdata_countyfips$RX_Summ_Surg_Primary_Site_c)
+ehrdata_countyfips<- ehrdata_countyfips %>% mutate(type_surg_received = case_when(
+    RX_Summ_Surg_Primary_Site_c == "None" ~ 1,
+    RX_Summ_Surg_Primary_Site_c == "Resection" ~ 2,
+    RX_Summ_Surg_Primary_Site_c %in% c("Tumor destruction","Other Surgery","Unknown") ~3))
+  
 table(ehrdata_countyfips$type_surg_received)
-
-ehrdata_countyfips$type_surg_received<-factor(ehrdata_countyfips$type_surg_received, levels = 1:4, labels = c("None", "Tumor destruction","Resection", "Other/Unknown"))
+ehrdata_countyfips$type_surg_received<-factor(ehrdata_countyfips$type_surg_received, levels = 1:3, labels = c("None","Resection", "Other/Unknown"))
 
 ehrdata_countyfips$facility_type1_cat_1<-ifelse(ehrdata_countyfips$facility_type1_cat%in% c("Unknown"), NA, ehrdata_countyfips$facility_type1_cat)
 ehrdata_countyfips$facility_type1_cat_1<-factor(ehrdata_countyfips$facility_type1_cat_1, levels = 1:4, labels = c("Academic Medical Centers" ,"Community","Specialty","Teaching"))
@@ -114,7 +117,7 @@ variablesn<- c("optimal_care","race_eth_recode", "nativity", "yeardx_fct", "age_
                "FIGOStage", "Grade_cat", "facility_type1_cat_1", "facility_size1",
                "facility_docspecialty1")
 
-table4paper<-CreateTableOne(vars = variables,strata = "optimal_care", data = ehrcensus19a, factorVars = variables, includeNA= T, addOverall = T )
+table4paper<-CreateTableOne(vars = variables,strata = "optimal_care", data = ehrcensus19a, factorVars = variables, includeNA= T, addOverall = T)
 
 #For row %
 for (i in 1:length(variables)) {
@@ -124,7 +127,7 @@ for (i in 1:length(variables)) {
 }
 table4export_row<-print(table4paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
 
-##Table B1-column percentages again
+##Table B2-column percentages again
 table4export_col<-print(table4paper, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
 
 
@@ -187,6 +190,8 @@ tab_model(model_freq,  p.style = "stars",
 ehrcensus19a$optimal_care_recode<- as.numeric(ehrcensus19a$optimal_care) #1/2 ; here 2 is optimal (=1)
 ehrcensus19a$optimal_care_recode <-ifelse(ehrcensus19a$optimal_care_recode == 1, 0,1)
 
+#----Bayesian binary logistic regression model
+#https://www.rensvandeschoot.com/tutorials/generalised-linear-models-with-brms/
 model_bayes<-brm(optimal_care_recode ~ nsdop_profilesr + yeardx  + age_dx_cat + 
                             insurance_status  + facility_type1_cat_1 + facility_size1 +
                  facility_docspecialty1,
@@ -198,32 +203,73 @@ model_bayes<-brm(optimal_care_recode ~ nsdop_profilesr + yeardx  + age_dx_cat +
                  init= "0", 
                  cores=2,
                  seed = 2004) 
-#https://www.rensvandeschoot.com/tutorials/generalised-linear-models-with-brms/
 
-##Model convergence
+#Updated 11/14: remove doc specialty from model and 
+mult1<-brm(optimal_care_recode ~ nsdop_profilesr + yeardx  + age_dx_cat + 
+                   insurance_status  + facility_type1_cat_1,
+                 data = ehrcensus19a,
+                 family = bernoulli(link='logit'), 
+                 warmup = 500, 
+                 iter = 2000, 
+                 chains = 2, 
+                 init= "0", 
+                 cores=2,
+                 seed = 2004) 
+
+mult2<-brm(optimal_care_recode ~ nsdop_profilesr + yeardx  + age_dx_cat + 
+             insurance_status  + facility_type1_cat_1 + FIGOStage,
+           data = ehrcensus19a,
+           family = bernoulli(link='logit'), 
+           warmup = 500, 
+           iter = 2000, 
+           chains = 2, 
+           init= "0", 
+           cores=2,
+           seed = 2004) 
+
+#---Model convergence
 ###The plot only shows the iterations after the burn-in period. The two chains mix well 
 #for all of the parameters and therefore, we can conclude no evidence of non-convergence.
-mcmc_plot(model_bayes, 
+mcmc_plot(mult2, 
          type = "trace")
 
 ##We can also check autocorrelation, considering that the presence of strong autocorrelation would bias variance estimates.
 mcmc_plot(model_bayes, 
           type = "acf_bar")
 
-## Interpret model
-#Bayesian binary logistic regression model
-summary(model_bayes)
-est<-round(exp(fixef(model_bayes)[-1,-2]), 3)
-est_dat<- as.data.frame(est[1:7,])
-est_dat$NSDOH_prof<-2:8
-est_dat$NSDOH_prof<-factor(est_dat$NSDOH_prof, levels = 2:8, labels = paste0("Profile",sep= " ", 2:8))
+##Model summary -Bayesian binary logistic regression model
+
+#Model 1
+summary(mult1)
+est1<-round(exp(fixef(mult1)[-1,-2]), 3)
+est1_dat<- as.data.frame(est1[1:7,])
+est1_dat$NSDOH_prof<-2:8
+est1_dat$NSDOH_prof<-factor(est1_dat$NSDOH_prof, levels = 2:8, labels = paste0("Profile",sep= " ", 2:8))
 
 
-#est_dat$NSDOH_prof <- relevel(est_dat$NSDOH_prof, ref =  "All Low")
+
+##Plot
+model1_plot<-ggplot(est1_dat, aes(x = Estimate, y = NSDOH_prof)) +
+  geom_point(size = 4, color = "blue") +  # Odds ratios as points
+  geom_errorbarh(aes(xmin = Q2.5, xmax = Q97.5), height = 0.2, color = "black", size = 0.75) +  # Credible intervals
+  theme_minimal() +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 16),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 1)) +
+  labs(y = "NSDoH Profiles",x = "Odds Ratio") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red")  # Reference line at OR = 1
 
 
-#Plot
-model_plot<-ggplot(est_dat, aes(x = Estimate, y = NSDOH_prof)) +
+#Model 2
+summary(mult2)
+est2<-round(exp(fixef(mult2)[-1,-2]), 3)
+est2_dat<- as.data.frame(est2[1:7,])
+est2_dat$NSDOH_prof<-2:8
+est2_dat$NSDOH_prof<-factor(est2_dat$NSDOH_prof, levels = 2:8, labels = paste0("Profile",sep= " ", 2:8))
+
+##Plot
+model2_plot<-ggplot(est2_dat, aes(x = Estimate, y = NSDOH_prof)) +
   geom_point(size = 4, color = "blue") +  # Odds ratios as points
   geom_errorbarh(aes(xmin = Q2.5, xmax = Q97.5), height = 0.2, color = "black", size = 0.75) +  # Credible intervals
   theme_minimal() +
@@ -236,10 +282,117 @@ model_plot<-ggplot(est_dat, aes(x = Estimate, y = NSDOH_prof)) +
 
 
 
-
-
-
-ggsave(filename = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot.svg")
-jpeg("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot_ordered.jpeg", width = 500, height = 500)
-model_plot
+#Export plots
+#ggsave(filename = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model_plot.svg")
+jpeg("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model1_plot_ordered.jpeg", width = 500, height = 500)
+model1_plot
 dev.off()
+
+jpeg("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Figures/model2_plot_ordered.jpeg", width = 500, height = 500)
+model2_plot
+dev.off()
+
+#Export results 
+write.csv(est2,file = "./Table1/modelout.csv")
+
+
+####Additional models as per Dr. Alimena's suggestions
+#---Model among patients with Stage II or higher
+table(ehrcensus19a$FIGOStage)
+
+#subset
+stage2<-ehrcensus19a %>% filter(FIGOStage %in% c("Stage II", "Stage III",  "Stage IV")) #n=409
+
+mod1_stage2<-brm(optimal_care_recode ~ nsdop_profilesr ,
+                        data = stage2,
+                        family = bernoulli(link='logit'), 
+                        warmup = 500, 
+                        iter = 2000, 
+                        chains = 2, 
+                        init= "0", 
+                        cores=2,
+                        seed = 2004) 
+
+summary(mod1_stage2)
+est_stage2_uni<-round(exp(fixef(mod1_stage2)[-1,-2]), 3)
+
+#Adjusted
+mod2_stage2<-brm(optimal_care_recode ~ nsdop_profilesr + yeardx  + age_dx_cat + 
+                              insurance_status  + facility_type1_cat_1,
+                            data = stage2,
+                            family = bernoulli(link='logit'), 
+                            warmup = 500, 
+                            iter = 2000, 
+                            chains = 2, 
+                            init= "0", 
+                            cores=2,
+                            seed = 2004) 
+
+summary(mod2_stage2)
+est_stage2_mult<-round(exp(fixef(mod2_stage2)[-1,-2]), 3)
+
+write.csv(est_stage2_mult,file = "./Table1/modelout.csv")
+#----Facility type as outcome variable:
+table(ehrcensus19a$nsdop_profilesr)
+table(ehrcensus19a$facility_type1_cat_1)
+
+#Facility type as outcome variable:
+ehrcensus19a <-ehrcensus19a %>% mutate(facilitybin = ifelse( facility_type1_cat == "Academic Medical Centers", 1, 0))
+
+
+model_facility_uni<-brm(facilitybin ~ nsdop_profilesr,
+                 data = ehrcensus19a,
+                 family = bernoulli(link='logit'), 
+                 warmup = 500, 
+                 iter = 2000, 
+                 chains = 2, 
+                 init= "0", 
+                 cores=2,
+                 seed = 2004) 
+
+model_facility_adj1<-brm(facilitybin ~ nsdop_profilesr + yeardx  + age_dx_cat + 
+                          insurance_status ,
+                        data = ehrcensus19a,
+                        family = bernoulli(link='logit'), 
+                        warmup = 500, 
+                        iter = 2000, 
+                        chains = 2, 
+                        init= "0", 
+                        cores=2,
+                        seed = 2004) 
+
+
+model_facility_adj2<-brm(facilitybin ~ nsdop_profilesr + yeardx  + age_dx_cat + 
+                           insurance_status  + FIGOStage,
+                         data = ehrcensus19a,
+                         family = bernoulli(link='logit'), 
+                         warmup = 500, 
+                         iter = 2000, 
+                         chains = 2, 
+                         init= "0", 
+                         cores=2,
+                         seed = 2004) 
+## Summarize model
+
+est_fc<-round(exp(fixef(model_facility_uni)[-1,-2]), 3)
+est_fc_m1<-round(exp(fixef(model_facility_adj1)[-1,-2]), 3)
+est_fc_m2<-round(exp(fixef(model_facility_adj2)[-1,-2]), 3)
+
+write.xlsx(list(est_fc, est_fc_m1, est_fc_m2),file = "./Table1/modelout.csv")
+
+
+# #Plot
+# model_plot1<-ggplot(est_fc_dat, aes(x = Estimate, y = NSDOH_prof)) +
+#   geom_point(size = 4, color = "blue") +  # Odds ratios as points
+#   geom_errorbarh(aes(xmin = Q2.5, xmax = Q97.5), height = 0.2, color = "black", size = 0.75) +  # Credible intervals
+#   theme_minimal() +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 14),
+#         axis.title = element_text(size = 16),
+#         panel.border = element_rect(color = "black", fill = NA, linewidth = 1)) +
+#   labs(y = "NSDoH Profiles",x = "Odds Ratio") +
+#   geom_vline(xintercept = 1, linetype = "dashed", color = "red")  # Reference line at OR = 1
+# 
+
+
+
