@@ -22,6 +22,24 @@ table1::table1(~  age_median + age_20_24 + age_25_34 + age_35_44 + age_45_54 + a
                NonHispanicWhite_2019 + NonHispanicBlack_2019 + NonHispanicAsian_2019 + Hispanic_or_Latino_2019 |nsdop_profiles, data= acs19_dat, overall = F)
 
 
+#Look at the variables in the model 
+censusdata_bin <- readRDS("./Data/censusdata_bin_raceeth_042524.rds")
+names(censusdata_bin) <- c("acs5_2010_bin","acs5_2015_bin","acs5_2019_bin")
+bin19<-censusdata_bin$acs5_2019_bin
+bin19$GEOID <- row.names(bin19)
+acs19_dat<-left_join(bin19,mbmm_clust, by = "GEOID")
+names(acs19_dat)
+acs19_dat<- acs19_dat %>% 
+  mutate_if(is.numeric, as.factor)
+
+table1::table1(~. |nsdop_profiles, data= acs19_dat, overall = F)
+
+
+
+
+
+
+
 #Data for Urban vs. Rural census tracts--
 #https://www.census.gov/programs-surveys/geography/guidance/geo-areas/urban-rural.html
 #Massachusetts has 23 urban areas (2020); 9 urbanized areas and 11 urban clusters: https://gis.data.mass.gov

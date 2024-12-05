@@ -119,11 +119,6 @@ preparedat_fig<-function(reslst,mapK, sesvars){
   return(prob_est_long)
 }
 
-
-
-
-
-
 #' @description
 #' Summary plot for success probabilities/cluster profiles
 #' @param prob_est_long long-format dataset containing the estimated mean success probabilities and labels for the different SES variables and groups
@@ -244,8 +239,6 @@ plot_thetakj_heatmap_r<-function(prob_est_long, fig_title){
 }
 
 
-
-
 #Bar graph of distribution of binary variables across clusters
 #1) Get proportions for level "1"
 propbin<-function(dataset,  mapK, sesvars){
@@ -312,7 +305,6 @@ plot_barBin<-function(data,color_palette, fig_title,numR = mapK, numC= 1){
           plot.title = element_text(hjust = 0.5))
   
 }
-
 
 ############ Posterior Probabilitites ###############
 #' Extract params

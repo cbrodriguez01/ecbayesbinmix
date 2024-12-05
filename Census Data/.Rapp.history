@@ -1,0 +1,5 @@
+load("/Users/carmenrodriguez/Desktop/Research Projects/Census Data/censusdata.RData")
+censusdata
+load("/Users/carmenrodriguez/Desktop/Research Projects/Census Data/censusdata_bin.RData")
+load("/Users/carmenrodriguez/Desktop/Research Projects/Census Data/censusdata.RData")
+load("/Users/carmenrodriguez/Desktop/Research Projects/Census Data/censusdata_updated.RData")

@@ -1,0 +1,506 @@
+---
+title: "Maps"
+author: "Carmen Rodriguez Cabrera"
+date: "2/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#--------------Load the tidycensus package into your R session-----------------
+library(tidycensus)
+library(tidyverse)
+library(Hmisc)
+library(reshape2)
+library(ggplot2)
+library(sf)
+library(tigris)
+library(crsuggest)
+
+# Define your Census API key and set it with census_api_key()
+#census_api_key("db6e734054a38a24963f654c19b83e7ffca8dd0f", install = TRUE, overwrite = TRUE) #only need to run once
+
+readRenviron("~/.Renviron") #run this to use  API key
+
+#Check API key
+Sys.getenv("CENSUS_API_KEY")
+```
+
+
+##  MAPS - Race/ Ethnicity Distribution across CTs
+https://walker-data.com/tidycensus/articles/spatial-data.html
+
+**tidycensus** can return simple feature geometry for geographic units along with 
+variables from the decennial US Census or American Community survey.  By setting _geometry = TRUE_ in a tidycensus function call, tidycensus will use the tigris package to retrieve the corresponding geographic dataset from the US 
+Census Bureau and pre-merge it with the tabular data obtained from the Census API.
+
+
+###---- Overall 
+
+```{r echo=FALSE,cache =TRUE}
+#----------------------- MAPS-------------------------------
+#https://walker-data.com/tidycensus/articles/spatial-data.html
+## tidycensus can return simple feature geometry for geographic units along with 
+# variables from the decennial US Census or American Community survey. 
+# By setting geometry = TRUE in a tidycensus function call, tidycensus will use 
+# the tigris package to retrieve the corresponding geographic dataset from the US 
+# Census Bureau and pre-merge it with the tabular data obtained from the Census API.
+
+options(tigris_use_cache = TRUE)
+
+#Overall race breakdown
+#https://www.bostonglobe.com/2021/08/12/metro/new-census-data-see-how-each-mass-town-has-changed/
+racevars<- c(`Non-Hispanic White` = "B03002_003",
+             `Non-Hispanic Black` = "B03002_004",
+              `Non-Hispanic AIAN` = "B03002_005",
+              `Non-Hispanic Asian` = "B03002_006",
+              `Non-Hispanic NHPI`="B03002_007",
+             `Hispanic/Latino` = "B03002_012")
+race<-get_acs(state = "MA", geography = "tract", 
+                  variables = racevars, year = 2019, geometry = TRUE, 
+              summary_var ="B03002_001")
+race<-race %>% mutate(Percentage = 100 * (estimate / summary_est))
+head(race)
+```
+
+
+```{r eval=FALSE, cache=TRUE, include=FALSE}
+# Maps showing the distribution of race and ethnicity across census tracts in MA
+
+#Look at distribution across census tracts
+# race %>% ggplot( aes(x = Percentage)) + geom_histogram( fill = "white", colour = "black") + facet_wrap( ~ variable) + ylab("MA Census Tract Count")
+
+#pdf("/Users/carmenrodriguez/Desktop/Spring2022/BST300/Spring 2022/R files/Figures/Race_EthnicityHistograms_MAPS.pdf")
+race %>% filter(variable == "Non-Hispanic White") %>% ggplot( aes(x = Percentage)) + 
+  geom_histogram( fill = "white", colour = "black") + ylab("Freqcuency") + 
+  ggtitle("Distribution of Non-Hispanic Whites  across MA Census tracts")
+
+race %>% filter(variable == "Non-Hispanic Black") %>% ggplot( aes(x = Percentage)) + 
+  geom_histogram( fill = "white", colour = "black") + ylab("Freqcuency") +
+  ggtitle("Distribution of Non-Hispanic Black  across MA Census tracts")
+
+race %>% filter(variable == "Non-Hispanic Asian") %>% ggplot( aes(x = Percentage)) + 
+  geom_histogram( fill = "white", colour = "black") + ylab("Freqcuency") +
+  ggtitle("Distribution of Non-Hispanic Asian  across MA Census tracts")
+
+race %>% filter(variable == "Non-Hispanic AIAN")%>% ggplot( aes(x = Percentage)) + 
+  geom_histogram( fill = "white", colour = "black") + ylab("Freqcuency") + 
+  ggtitle("Distribution of Non-Hispanic AIAN  across MA Census tracts")
+
+race %>% filter(variable == "Non-Hispanic NHPI") %>% ggplot( aes(x = Percentage)) + 
+  geom_histogram( fill = "white", colour = "black") + ylab("Freqcuency") + 
+  ggtitle("Distribution of Non-Hispanic NHPI across MA Census tracts")
+
+race %>% filter(variable == "Hispanic/Latino") %>% ggplot( aes(x = Percentage)) + 
+  geom_histogram( fill = "white", colour = "black") + ylab("Freqcuency") +
+  ggtitle("Distribution of Hispanic or Latinos  across MA Census tracts")
+
+
+race %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = " Race/Ethnicity by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+#dev.off()
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, cache =TRUE}
+# Check coordinates reference system before plotting maps--which specifies not only how data coordinates should be mapped to a model of the 
+MA_tracts <- tracts("MA", cb = TRUE)
+st_crs(MA_tracts)
+ma_crs<-crsuggest::suggest_crs(MA_tracts) #6491	NAD83(2011) / Massachusetts Mainland Zone meters
+
+# coord_sf(crs = 6491  Help with projection/CRS
+# coords_sf(datum = NA) Remove gridlines, i.e graticules
+
+##Colors
+#https://colorbrewer2.org/#type=sequential&scheme=YlOrRd&n=3
+#https://ggplot2.tidyverse.org/reference/scale_viridis.html
+
+
+race %>% filter(variable %in% c("Non-Hispanic White","Non-Hispanic Black", "Non-Hispanic Asian","Hispanic/Latino" )) %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = " Race/Ethnicity by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+
+# race %>% ggplot(aes(fill = Percentage)) + 
+#   facet_wrap(~ variable) +
+#   geom_sf(color = NA) + 
+#   coord_sf(crs = 6491, datum =NA) +
+#   scale_fill_distiller(palette = "YlOrRd", direction = -1) +
+#   labs(title = " Race/Ethnicity by Census Tracts in MA",
+#        caption = "Data source: 2019 5-year ACS",
+#        fill = "Percent") 
+
+```
+
+###---- Hispanic/Latino Heritage
+
+```{r}
+# OVERALL GROUPS
+hispanic_overall<-c(
+`Mexican`	= "B03001_004",
+`Puerto Rican`=	"B03001_005",
+`Cuban`	= "B03001_006",
+`Dominican` =	"B03001_007",
+`Central American`=	"B03001_008",
+`South American`=	"B03001_016",
+`Other Hispanic or Latino`=	"B03001_027")
+
+options(tigris_use_cache = TRUE)
+hispanic_overall<-get_acs(state = "MA", geography = "tract", 
+                  variables = hispanic_overall, year = 2019, geometry = TRUE, 
+                  summary_var = "B03001_003")
+
+hispanic_overall<-hispanic_overall%>% mutate(Percentage = 100 * (estimate / summary_est))
+head(hispanic_overall)
+
+#pdf("/Users/carmenrodriguez/Desktop/Spring2022/BST300/Spring 2022/R files/Figures/hispanicAll.pdf")
+hispanic_overall %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = " Hispanic or Latino: All groups by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+#dev.off()
+```
+
+
+```{r eval=FALSE, include=FALSE}
+#Central America
+hispanic_CA<-c(`Costa Rican`=	"B03001_009",
+`Guatemalan`=	"B03001_010",
+`Honduran`=	"B03001_011",
+`Nicaraguan`=	"B03001_012",
+`Panamanian`=	"B03001_013",
+`Salvadoran`=	"B03001_014",
+`Other Central American`=	"B03001_015")
+
+hispanic_CA<-get_acs(state = "MA", geography = "tract", 
+                  variables = hispanic_CA, year = 2019, geometry = TRUE, 
+                  summary_var = "B03001_008")
+hispanic_CA<-hispanic_CA%>% mutate(Percentage = 100 * (estimate / summary_est))
+head(hispanic_CA)
+
+pdf("/Users/carmenrodriguez/Desktop/Spring2022/BST300/Spring 2022/R files/Figures/hispanic_CA.pdf")
+hispanic_CA %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Hispanic or Latino: Central American groups by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+dev.off()
+
+#South America
+hispanic_SA<-c(`Argentinean`=	"B03001_017",
+`Bolivian`=	"B03001_018",
+`Chilean`	="B03001_019",
+`Colombian`=	"B03001_020",
+`Ecuadorian`=	"B03001_021",
+`Paraguayan`=	"B03001_022",
+`Peruvian`=	"B03001_023",
+`Uruguayan`	= "B03001_024",
+`Venezuelan`=	"B03001_025",
+`Other South American`=	"B03001_026")
+
+hispanic_SA<-get_acs(state = "MA", geography = "tract", 
+                  variables = hispanic_SA, year = 2019, geometry = TRUE, 
+                  summary_var = "B03001_016")
+hispanic_SA<-hispanic_SA%>% mutate(Percentage = 100 * (estimate / summary_est))
+head(hispanic_SA)
+
+pdf("/Users/carmenrodriguez/Desktop/Spring2022/BST300/Spring 2022/R files/Figures/hispanic_SA.pdf")
+hispanic_SA %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Hispanic or Latino: South American groups by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+dev.off()
+```
+
+
+```{r eval=FALSE, include=FALSE}
+#pdf("/Users/carmenrodriguez/Desktop/Spring2022/BST300/Spring 2022/R files/Figures/HispanicHeritage.pdf")
+hispanic_overall %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = " Hispanic or Latino: All groups by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+hispanic_CA %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Hispanic or Latino: Central American groups by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+hispanic_SA %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Hispanic or Latino: South American groups by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+dev.off()
+```
+
+###---- Asian 
+```{r eval=FALSE, message=FALSE, warning=FALSE, cache=TRUE, include=FALSE}
+
+##- Divided by regions
+#-- East Asian: China, Korea, Taiwan, Japan, Macau, Mongolia
+asia_east<-c(`Chinese`=	"B02015_007",
+`Japanese`=	"B02015_011",
+`Okinawan`=	"B02015_017",
+`Korean`=	"B02015_012",
+`Mongolian`=	"B02015_015",
+`Taiwanese`	="B02015_020",
+`Hmong`	="B02015_009")
+#Hmong mainly live in southwest china
+
+#-- South Asia: Sri Lanka, Bangladesh, India, Afghanistan, Pakistan, Bhutan, Nepal, Iran, and the Maldives.
+asia_south<-c(`Asian Indian`="B02015_002",
+`Bangladeshi`="B02015_003",
+`Bhutanse`=	"B02015_004",
+`Nepalese`=	"B02015_016",
+`Pakistani`	="B02015_018",
+`Sri Lankan`=	"B02015_019")
+#Burmese - Bangladeshi-- interesting because this is a language
+
+#--Southeast Asia: Brunei, Cambodia, Indonesia, Laos, Malaysia, Myanmar, Philippines, Singapore, Thailand, Timor Leste, and Vietnam.
+asia_southeast<-c(`Burmese`	="B02015_005",
+  `Cambodian`="B02015_006",
+  `Filipino`=	"B02015_008",
+  `Indonesian`=	"B02015_010",
+  `Malaysian`=	"B02015_014",
+  `Laotian` ="B02015_013",
+  `Thai`=	"B02015_021",
+  `Vietnamese`=	"B02015_022")
+
+asia_other<- c(`Other(specified)`	="B02015_023",
+  `Other(not specified)`=	"B02015_024",
+  `Two or more`	="B02015_025")
+
+options(tigris_use_cache = TRUE) # cache shapefiles for use in future sessions
+
+asia_east<-get_acs(state = "MA", geography = "tract", 
+                  variables = asia_east, year = 2019, geometry = TRUE, 
+                  summary_var = "B02015_001")
+
+asia_south<-get_acs(state = "MA", geography = "tract", 
+                  variables = asia_south, year = 2019, geometry = TRUE, 
+                  summary_var = "B02015_001")
+
+asia_southeast<-get_acs(state = "MA", geography = "tract", 
+                  variables = asia_southeast, year = 2019, geometry = TRUE, 
+                  summary_var = "B02015_001")
+
+asia_other<-get_acs(state = "MA", geography = "tract", 
+                  variables = asia_other, year = 2019, geometry = TRUE, 
+                  summary_var = "B02015_001")
+
+asia_east<-asia_east %>% mutate(Percentage = 100 * (estimate / summary_est))
+asia_south<-asia_south %>% mutate(Percentage = 100 * (estimate / summary_est))
+asia_southeast<-asia_southeast %>% mutate(Percentage = 100 * (estimate / summary_est))
+asia_other<-asia_other %>% mutate(Percentage = 100 * (estimate / summary_est))
+
+
+pdf("/Users/carmenrodriguez/Desktop/Spring2022/BST300/Spring 2022/R files/Figures/AsianAlone.pdf")
+asia_east %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Asian Alone: East Asian by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+asia_south %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Asian Alone: South Asian by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+asia_southeast %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Asian Alone: South East Asian by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+asia_other %>% ggplot(aes(fill = Percentage)) + 
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Asian Alone: Other Asian by Census Tracts in MA",
+       caption = "Data source: 2019 5-year ACS",
+       fill = "Percent") + theme_minimal()
+
+dev.off()
+```
+
+
+
+```{r,cache =TRUE}
+options(tigris_use_cache = TRUE)
+#2006-2010
+vars<-c(`High school graduate or higher` = "DP02_0066P",
+                 `Bachelors degree or higher` = "DP02_0067P",
+                 `Below Poverty Line` = "DP03_0119P")
+  
+options(tigris_use_cache = TRUE) 
+demographics_2010<-get_acs(state = "MA", geography = "tract", 
+                  variables = vars, year = 2010, geometry = TRUE)  
+
+
+#quick extraction to make the optimal care map
+acstigris<-get_acs(state = "MA", geography = "tract", 
+                  variables = "DP02_0066P", year = 2019, geometry = TRUE)
+
+
+# demographics_2010 %>% filter(variable== "Median Income") %>% ggplot(aes(fill = estimate)) + 
+#   geom_sf(color = NA) + 
+#   coord_sf(crs = 6491, datum = NA) +
+#   scale_fill_viridis_c(option = "C",direction = 1) +
+#   labs(title = "Median Income Distribution by Census Tracts in MA",
+#        caption = "Data source: 2006-2010 5-year ACS",
+#        fill = "Estimate") + theme_minimal()
+
+demographics_2010 %>% filter(variable %in% c("High school graduate or higher","Bachelors degree or higher")) %>% ggplot(aes(fill = estimate)) + 
+  facet_wrap(~ variable) +                            
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Educational Attainment by Census Tracts in MA",
+       caption = "Data source: 2006-2010 5-year ACS",
+       fill = "Percentage") + theme_minimal()
+
+demographics_2010 %>% filter(variable==c("Below Poverty Line")) %>% ggplot(aes(fill = estimate)) + 
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Families and people whose income is below poverty level by Census Tracts in MA",
+       caption = "Data source: 2006-2010 5-year ACS",
+       fill = "Percentage") + theme_minimal()
+```
+
+```{r,cache =TRUE}
+#2011-2015
+options(tigris_use_cache = TRUE)
+demographics_2015<-get_acs(state = "MA", geography = "tract", 
+                  variables = vars, year = 2015, geometry = TRUE) 
+
+
+# demographics_2015 %>% filter(variable== "Median Income") %>% ggplot(aes(fill = estimate)) + 
+#   geom_sf(color = NA) + 
+#   coord_sf(crs = 6491, datum = NA) +
+#   scale_fill_viridis_c(option = "C",direction = 1) +
+#   labs(title = "Median Income Distribution by Census Tracts in MA",
+#        caption = "Data source: 2011-2015 5-year ACS",
+#        fill = "Estimate") + theme_minimal()
+
+
+demographics_2015 %>% filter(variable %in% c("High school graduate or higher","Bachelors degree or higher")) %>% ggplot(aes(fill = estimate)) + 
+  facet_wrap(~ variable) +                            
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Educational Attainment by Census Tracts in MA",
+       caption = "Data source: 2011-2015 5-year ACS",
+       fill = "Percentage") + theme_minimal()
+
+demographics_2015 %>% filter(variable==c("Below Poverty Line")) %>% ggplot(aes(fill = estimate)) + 
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Families and people whose income is below poverty level by Census Tracts in MA",
+       caption = "Data source: 2011-2015 5-year ACS",
+       fill = "Percentage") + theme_minimal()
+
+
+```
+
+```{r,cache =TRUE}
+#2015-2019
+vars1<-c(`High school graduate or higher` = "DP02_0067P",
+                 `Bachelors degree or higher` = "DP02_0068P",
+                 `Below Poverty Line` = "DP03_0119P",
+                  `Renter Occupied Housing` = "DP04_0047P",
+                   `Owner Occupied Housing` = "DP04_0046P")
+  
+options(tigris_use_cache = TRUE) 
+demographics_2019<-get_acs(state = "MA", geography = "tract", 
+                  variables = vars1, year = 2019, geometry = TRUE)
+
+# demographics_2019 %>% filter(variable== "Median Income") %>% ggplot(aes(fill = estimate)) + 
+#   geom_sf(color = NA) + 
+#   coord_sf(crs = 6491, datum = NA) +
+#   scale_fill_viridis_c(option = "C",direction = 1) +
+#   labs(title = "Median Income Distribution by Census Tracts in MA",
+#        caption = "Data source: 2015-2019 5-year ACS",
+#        fill = "Estimate") + theme_minimal()
+
+demographics_2019 %>% filter(variable %in% c("High school graduate or higher","Bachelors degree or higher")) %>% ggplot(aes(fill = estimate)) + 
+  facet_wrap(~ variable) +                            
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Educational Attainment by Census Tracts in MA",
+       caption = "Data source: 2015-2019 5-year ACS",
+       fill = "Percentage") + theme_minimal()
+
+demographics_2019 %>% filter(variable==c("Below Poverty Line")) %>% ggplot(aes(fill = estimate)) + 
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Families and people whose income is below poverty level by Census Tracts in MA",
+       caption = "Data source: 2015-2019 5-year ACS",
+       fill = "Percentage") + theme_minimal()
+
+demographics_2019 %>% filter(variable %in% c("Renter Occupied Housing","Owner Occupied Housing")) %>% 
+  ggplot(aes(fill = estimate)) +  
+  facet_wrap(~ variable) +
+  geom_sf(color = NA) + 
+  coord_sf(crs = 6491, datum = NA) +
+  scale_fill_viridis_c(option = "C",direction = 1) +
+  labs(title = "Housing tenure by Census Tracts in MA",
+       caption = "Data source: 2015-2019 5-year ACS",
+       fill = "Percentage") + theme_minimal()
+
+```
+
+

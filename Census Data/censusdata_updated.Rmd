@@ -1,0 +1,363 @@
+---
+title: "Massachussets census tract level data download and variable extraction"
+author: "Carmen Rodriguez Cabrera"
+date started: "2/15/2022"
+last updated: "01/18/2024"
+output:
+  pdf_document: default
+  html_document: default
+geometry: left=1cm,right=1cm,top=1cm,bottom=1cm
+---
+
+```{r}
+#ONLY NEED TO DO THIS ONCE!!!!!!
+#library(devtools)
+#install.packages("rgdal", configure.args = c("--with-proj-lib=/usr/local/lib/", "--with-proj-include=/usr/local/include/"))
+#install.packages("sf", configure.args="--with-gdal-config=/usr/local/gdal-3.4.1/bin/gdal-config --with-geos-config=/usr/local/bin/geos-config")
+
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#--------------Load the tidycensus package into your R session-----------------
+library(tidycensus)
+library(tidyverse)
+library(Hmisc)
+library(reshape2)
+library(ggplot2)
+library(stringr)
+library(readxl)
+`%!in%` <- Negate(`%in%`)
+```
+
+# Set up Census API Key 
+```{r include=FALSE}
+# Define your Census API key and set it with census_api_key()
+#census_api_key("db6e734054a38a24963f654c19b83e7ffca8dd0f", install = TRUE, overwrite = TRUE) #only need to run once
+
+readRenviron("~/.Renviron") #run this to use  API key
+
+#Check API key
+Sys.getenv("CENSUS_API_KEY")
+```
+
+## Variable selection (CLEAN UP)
+
+```{r echo=TRUE}
+#*Note: dates of diagnosis ranged from 2006- 2017****
+#
+
+#Getting variables from the Census or ACS requires knowing the variable ID - 
+#and there are thousands of these IDs across the different Census files. 
+#To rapidly search for variables, use the load_variables() function.
+
+#---THERE ARE SOME DIFFERENCES IN THE NAMES SO TO BE SAFE WENT THROUGH VARIABLES BY YEAR
+
+## 2006-2010 ACS 5-year estimates--2010 ACS 
+v10_acsprofile<-load_variables(2010, "acs5/profile", cache = TRUE)
+v10_acstable<-load_variables(2010, "acs5", cache = TRUE)
+
+
+## 2011-2015, ACS 2015 5-year
+v15_acsprofile<-load_variables(2015, "acs5/profile", cache = TRUE)
+v15_acstable<-load_variables(2015, "acs5", cache = TRUE)
+
+## 2015-2019  ACS 2019 5-year
+v19_acsprofile<-load_variables(2019, "acs5/profile", cache = TRUE)
+v19_acstable<-load_variables(2019, "acs5", cache = TRUE)
+
+####  2010 ACS variables 
+medianincome<-c(`medianincome_2010` = "B19013_001", `median_income_new` = "DP03_0062")  #Same output
+
+
+education<-c(`HighSchoolHigherP_2010`= "DP02_0066P",
+              `BachelorHigherP_2010` = "DP02_0067P")
+
+
+housing<-c(`RenterOccupiedUnitP_2010` =  "DP04_0046P",  #Percent!!HOUSING TENURE!!Renter-occupied
+           `OwnerOccupiedUnitP_2010` = "DP04_0045P")   #Percent!!HOUSING TENURE!!Owner-occupied
+
+employment<-c(`UnemployementP_2010` = "DP03_0009P") 
+
+poverty<-c(`BelowPovertyLineP_2010` = "DP03_0119P", SNAP_2010_P = "DP03_0074P", SNAP_2010_E = "DP03_0074")
+
+racevars<- c(`NonHispanicWhite_2010` = "DP05_0072P",
+             `NonHispanicBlack_2010` = "DP05_0073P",
+              `NonHispanicAsian_2010` = "DP05_0075P",
+             `Hispanic_or_Latino_2010` = "DP05_0066P",
+             `NH_two_or_more_races_2010` = "DP05_0078P",
+              `NH_some_other_race_2010` = "DP05_0077P",
+              `NonHispanicWhite_2010_E` = "DP05_0072",
+             `NonHispanicBlack_2010_E` = "DP05_0073",
+              `NonHispanicAsian_2010_E` = "DP05_0075",
+             `Hispanic_or_Latino_2010_E` = "DP05_0066",
+             `NH_two_or_more_races_2010_E` = "DP05_0078",
+              `NH_some_other_race_2010_E` = "DP05_0077",
+               `NH_NHPI_2010_E` = "DP05_0076",
+              `Total_race_2010` = "DP05_0065")
+
+
+
+#---Added 1/18/24--Crowding among housing units -- idea from CDC PLACES dataset on SDH
+#Numerator:	Occupied housing units with 1.01 to 1.50 and 1.51 or more occupants per room
+#Denominator:	All occupied housing units for the same calendar year: "DP04_0078","DP04_0077", "DP04_0002"
+
+
+other<-c(`Education9years_2010` = "DP02_0059P",
+         `Lackplumbing_2010`= "DP04_0072P", 
+         `Femalehousehold_2010_P` ="DP02_0009P",
+         `Femalehousehold_2010_E` ="DP02_0009",
+         `No_vehicle_2010` = "DP04_0057P",
+         `Two_or_more_rooms_2010_P` ="DP04_0078P", 
+          `Two_or_more_rooms_2010_E`= "DP04_0078", `Lessthan2rooms_2010`="DP04_0077",  `Total_housing_2010`="DP04_0002", 
+         `white_collar_occupation_2010` = "DP03_0027P")
+
+vars_want_2010<-c(medianincome, education,housing,employment, poverty, racevars, other)
+
+
+####  2015 ACS variables
+vars_want_2015<-c(`medianincome_2015` = "B19013_001",
+                           `HighSchoolHigherP_2015`= "DP02_0066P",
+                           `BachelorHigherP_2015`= "DP02_0067P",
+                           `RenterOccupiedUnitP_2015` = "DP04_0047P",
+                           `OwnerOccupiedUnitP_2015` = "DP04_0046P",
+                           `UnemployementP_2015`= "DP03_0005P",
+                           `BelowPovertyLineP_2015` = "DP03_0119P", 
+                            `SNAP_2015_P` = "DP03_0074P", 
+                            `SNAP_2015_E` = "DP03_0074",
+                           `NonHispanicWhite_2015` = "DP05_0072P",
+                           `NonHispanicBlack_2015` = "DP05_0073P",
+                            `NonHispanicAsian_2015` = "DP05_0075P",
+                           `Hispanic_or_Latino_2015` = "DP05_0066P",
+                           `NH_two_or_more_races_2015` = "DP05_0078P",
+                            `NH_some_other_race_2015` = "DP05_0077P",
+                            `NonHispanicWhite_2015_E` = "DP05_0072",
+                           `NonHispanicBlack_2015_E` = "DP05_0073",
+                            `NonHispanicAsian_2015_E` = "DP05_0075",
+                           `Hispanic_or_Latino_2015_E` = "DP05_0066",
+                           `NH_two_or_more_races_2015_E` = "DP05_0078",
+                            `NH_some_other_race_2015_E` = "DP05_0077",
+                             `NH_NHPI_2015_E` = "DP05_0076",
+                            `Total_race_2015` = "DP05_0065",
+                           `Education9years_2015` = "DP02_0059P", 
+                           `Lackplumbing_2015`= "DP04_0073P", 
+                           `Femalehousehold_2015_P` ="DP02_0009P",
+                           `Femalehousehold_2015_E` ="DP02_0009",
+                           `No_vehicle_2015` = "DP04_0058P",
+                           `Two_or_more_rooms_2015_P` ="DP04_0079P", `Two_or_more_rooms_2015_E`="DP04_0079",
+                            `Lessthan2rooms_2015`= "DP04_0078", `Total_housing_2015`= "DP04_0002", 
+                            `white_collar_occupation_2015` = "DP03_0027P")
+
+
+#### 2019 ACS variables
+vars_want_2019<-c(`medianincome_2019` = "B19013_001",
+                           `HighSchoolHigherP_2019` = "DP02_0067P",
+                           `BachelorHigherP_2019`= "DP02_0068P",
+                           `RenterOccupiedUnitP_2019` = "DP04_0047P",
+                           `OwnerOccupiedUnitP_2019` = "DP04_0046P",
+                           `UnemployementP_2019` = "DP03_0009P",
+                           `BelowPovertyLineP_2019` = "DP03_0119P",
+                             `SNAP_2019_P` = "DP03_0074P", 
+                            `SNAP_2019_E` = "DP03_0074",
+                            `NonHispanicWhite_2019` = "DP05_0077P",
+                           `NonHispanicBlack_2019` = "DP05_0078P",
+                            `NonHispanicAsian_2019` = "DP05_0080P",
+                           `Hispanic_or_Latino_2019` = "DP05_0071P",
+                           `NH_two_or_more_races_2019` = "DP05_0083P",
+                            `NH_some_other_race_2019` = "DP05_0082P",
+                            `NonHispanicWhite_2019_E` = "DP05_0077",
+                           `NonHispanicBlack_2019_E` = "DP05_0078",
+                            `NonHispanicAsian_2019_E` = "DP05_0080",
+                           `Hispanic_or_Latino_2019_E` = "DP05_0071",
+                           `NH_two_or_more_races_2019_E` = "DP05_0083",
+                            `NH_some_other_race_2019_E` = "DP05_0082",
+                             `NH_NHPI_2019_E` = "DP05_0081",
+                            `Total_race_2019` = "DP05_0070",
+                           `Education9years_2019` = "DP02_0060P", 
+                           `Lackplumbing_2019`= "DP04_0073P", 
+                           `Femalehousehold_2019_P` ="DP02_0011P",
+                            `Femalehousehold_2019_E` ="DP02_0011",
+                           `No_vehicle_2019` = "DP04_0058P",
+                           `Two_or_more_rooms_2019_P` ="DP04_0079P",
+                            `Two_or_more_rooms_2019_E` ="DP04_0079", `Lessthan2rooms_2019`="DP04_0078", `Total_housing_2019`= "DP04_0002", `white_collar_occupation_2019` = "DP03_0027P")
+
+```
+
+## Extract ACS 5-year estimates (2006-2010) 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE,cache=TRUE}
+acs5_2010_long<-get_acs(geography = "tract", state="MA", variables = vars_want_2010, year = 2010) 
+#acs5_2010_wide<-acs5_2010_long %>% select("GEOID","NAME","variable","estimate") 
+acs5_2010_wide<-acs5_2010_long %>% select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(id_cols = "GEOID",names_from = variable,values_from = estimate)
+#head(acs5_2010_wide)
+str(acs5_2010_wide)
+describe(acs5_2010_wide)
+
+
+# NonHispanicWhiteP_2010 = 100 *(NonHispanicWhite_2010/Total_race_2010),
+#                 NonHispanicBlackP_2010 = 100 *(NonHispanicBlack_2010/Total_race_2010),
+#                 NonHispanicAsianP_2010 = 100 *(NonHispanicAsian_2010/Total_race_2010),
+#                 Hispanic_or_LatinoP_2010 = 100 *(Hispanic_or_Latino_2010/Total_race_2010),
+#                 NH_two_or_more_racesP_2010 = 100 *(NH_two_or_more_races_2010/Total_race_2010)
+
+#Make new variables
+acs5_2010_wide<-acs5_2010_wide %>% mutate(
+                #Persons of racial or ethnic minority status-- CDC Places
+                minoritystatus_2010 = (((NonHispanicBlack_2010_E +
+                  NonHispanicAsian_2010_E + Hispanic_or_Latino_2010_E +
+                  NH_two_or_more_races_2010_E + NH_some_other_race_2010_E + NH_NHPI_2010_E)/Total_race_2010)*100),
+                Crowding_housing_2010 = (((Lessthan2rooms_2010 + Two_or_more_rooms_2010_E)/Total_housing_2010)*100)) #Crowding among housing units 
+
+#acs5_2010_wide %>% select(GEOID,NAME, minoritystatus_2010, Crowding_housing_2010)
+
+#Somthing weird with pivot-wider
+
+
+             
+```
+
+## Extract ACS 5-year estimates (2011-2015) 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE ,cache=TRUE}
+acs5_2015_long<-get_acs(geography = "tract", state="MA", variables = vars_want_2015, 
+                             year = 2015) 
+
+acs5_2015_wide<-acs5_2015_long %>% select("GEOID","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+str(acs5_2015_wide)
+#describe(acs5_2015_wide)
+
+acs5_2015_wide<-acs5_2015_wide %>% mutate(
+                #Persons of racial or ethnic minority status-- CDC Places
+                minoritystatus_2015 = (((NonHispanicBlack_2015_E +
+                  NonHispanicAsian_2015_E + Hispanic_or_Latino_2015_E +
+                    NH_two_or_more_races_2015_E + NH_some_other_race_2015_E +    NH_NHPI_2015_E)/Total_race_2015)*100),
+                Crowding_housing_2015 = (((Lessthan2rooms_2015 + Two_or_more_rooms_2015_E)/Total_housing_2015)*100)) #Crowding among housing units 
+
+summary(acs5_2015_wide)
+
+# https://api.census.gov/data/key_signup.html
+```
+
+## Extract ACS 5-year estimates (2015-2019) 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE,cache=TRUE}
+acs5_2019_long<-get_acs(geography = "tract", state="MA", variables = vars_want_2019, year=2019) 
+
+acs5_2019_wide<-acs5_2019_long %>% select("GEOID","variable","estimate") %>% pivot_wider(names_from = variable,values_from = estimate)
+str(acs5_2019_wide)
+#describe(acs5_2019_wide)
+
+acs5_2019_wide<-acs5_2019_wide %>% mutate(
+                minoritystatus_2019_2 = (((NonHispanicBlack_2019_E +
+                  NonHispanicAsian_2019_E + Hispanic_or_Latino_2019_E +
+                  NH_two_or_more_races_2019_E + NH_some_other_race_2019_E + NH_NHPI_2019_E)/Total_race_2019)*100),
+                
+                Crowding_housing_2019 = (((Lessthan2rooms_2019 + Two_or_more_rooms_2019_E)/Total_housing_2019)*100)) 
+
+#Crowding among housing units 
+summary(acs5_2019_wide)
+```
+
+
+```{r}
+#SAVE DATA
+save( acs5_2010_long, acs5_2010_wide, acs5_2015_long, acs5_2015_wide, acs5_2019_long,acs5_2019_wide, file = "censusdata_updated.RData")
+```
+
+
+
+## Add age distribution for CTs
+```{r}
+agevars10<- c(age_median = "DP05_0017", 
+              age_20_24 = "DP05_0008P", 
+              age_25_34 = "DP05_0009P",  
+              age_35_44 = "DP05_0010P",  
+              age_45_54 = "DP05_0011P",
+              age_55_59 = "DP05_0012P", 
+              age_60_64 = "DP05_0013P",  
+              age_65_74 = "DP05_0014P",
+              age_75_84 = "DP05_0015P", 
+              age_85_more = "DP05_0016P", 
+              total_ct_pop= "DP05_0001")
+
+agedist10<-get_acs(geography = "tract", state="MA", variables = agevars10, year = 2010) 
+agedist10_wide<-agedist10 %>% select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+str(agedist10_wide)
+
+
+agevars15<- agevars10
+agedist15<-get_acs(geography = "tract", state="MA", variables = agevars15, year = 2015) 
+agedist15_wide<-agedist15 %>% select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+str(agedist15_wide)
+
+
+agevars19<- c(age_median = "DP05_0018", 
+              age_20_24 = "DP05_0009P", 
+              age_25_34 = "DP05_0010P",  
+              age_35_44 = "DP05_0011P",  
+              age_45_54 = "DP05_0012P",
+              age_55_59 = "DP05_0013P", 
+              age_60_64 = "DP05_0014P",  
+              age_65_74 = "DP05_0015P",
+              age_75_84 = "DP05_0016P", 
+              age_85_more = "DP05_0017P", 
+              total_ct_pop= "DP05_0001")
+
+agedist19<-get_acs(geography = "tract", state="MA", variables = agevars19, year = 2019) 
+agedist19_wide<-agedist19 %>% select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+str(agedist19_wide)
+
+#SAVE AGE DISTRIBUTION DATA
+save(agedist10_wide, agedist15_wide, agedist19_wide, file = "census_age_dist.RData")
+
+
+
+```
+
+
+## Language distribution
+```{r}
+#Population 5 years and over
+#DP02_0113: Estimate!!LANGUAGE SPOKEN AT HOME!!Language other than English!!Speak English less than "very well"
+#DP02_0113P: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English!!Speak English less than "very well"
+
+#DP02_0112:Estimate!!LANGUAGE SPOKEN AT HOME!!Language other than English
+#DP02_0112P: Percent!!LANGUAGE SPOKEN AT HOME!!Language other than English
+language10<-c(lang_home_EN_notwell = "DP02_0113P", lang_home_notEN = "DP02_0112P")
+
+
+langdist10<-get_acs(geography = "tract", state="MA", variables = language10, year = 2010) 
+langdist10_wide<-langdist10 %>% select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+str(langdist10_wide)
+
+
+langdist15<-get_acs(geography = "tract", state="MA", variables = language10, year = 2015) 
+langdist15_wide<-langdist15 %>% select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+str(langdist15_wide)
+
+
+#2015-2019
+#DP02_0114P: Percent!!LANGUAGE SPOKEN AT HOME!!Population 5 years and over!!Language other than English!!Speak English less than "very well"
+#DP02_0113P: Percent!!LANGUAGE SPOKEN AT HOME!!Population 5 years and over!!Language other than English
+
+language19<-c(lang_home_EN_notwell = "DP02_0114P", lang_home_notEN = "DP02_0113P")
+
+langdist19<-get_acs(geography = "tract", state="MA", variables = language19, year = 2019) 
+langdist19_wide<-langdist19 %>% select("GEOID","NAME","variable","estimate") %>% 
+                                  pivot_wider(names_from = variable,values_from = estimate)
+str(langdist19_wide)
+
+save(langdist10_wide, langdist15_wide, langdist19_wide, file = "/Users/carmenrodriguez/Desktop/Research Projects/Census Data/census_language_dist.RData")
+
+```
+
+
+
+
+

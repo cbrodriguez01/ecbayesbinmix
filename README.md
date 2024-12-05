@@ -1,11 +1,24 @@
-# ecbayesbinmix
-Analysis for EC and neighborhood SES paper
+
+This repository contains R code used for the paper titled "A Bayesian Mixture Model Approach to Examining Neighborhood Social Determinants of Health Disparities in Endometrial Cancer Care in Massachusetts". 
+
+*Notes:* 
+
+- We do not include our code for data cleaning and defining the outcome "optimal care" from the Massachusetts Cancer Registry data. Access to this data requires IRB approval. For more information visit [MCR](https://www.mass.gov/info-details/massachusetts-cancer-registry-mcr-data).
+
+- We have census data for three surveys of the American Community Survey (ACS) in this repository as we looked at all three, however the paper referenced above only includes data from the 2015-2019 ACS.
 
 
-Files included here:
- 1. An example run on the ACS 2006-2010 dataset (Note that the race variables are included here).
-  *  The zip file "Output example run" contains DETAILED output (see Notion under  BayesBinMix/Output). I also saved the R environment from this as acs10_Kmax20.rds. This RDS file contains the output you will see on the function description while the other folder contains more detailed information.
+For any further inquiries, please email `crodriguezcabrera@g.harvard.edu`.
 
-  *  CENSUSBinPrep.R: Script used to convert data to binary variables
-  *  censusdata_Updated.RData: Original census data updated as of 1/23/24. I added a few more variables; for documentation see notion page
-  *  censusdata_bin.rds: Census data in binary form. This contains a named list for each dataset.
+Main files for manuscript:
+
+* `CENSUSBinPrep_updated.R` : Data binarization for the multivariate Bernoulli mixture model.
+
+* `MBMMmodels_manuscript.R`:  Multivariate Bernoulli mixture model output processing, and figures.
+
+* `ECbayesbinmix_manuscript.R`: Tables and regression analysis.
+
+* `nsdoh_profiles_app_urban`:  Folder containing code for the interactive map created with Shiny. This one contains the urban boundaries.
+
+
+

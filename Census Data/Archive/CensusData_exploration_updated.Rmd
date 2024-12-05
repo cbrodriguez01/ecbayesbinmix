@@ -1,0 +1,232 @@
+---
+title: "Census variables Correlations and Descriptives"
+author: "Carmen Rodriguez"
+date started: "2/15/2022"
+last updated: "1/23/2024"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidycensus)
+library(tidyverse)
+library(Hmisc)
+library(reshape2)
+library(ggplot2)
+library(psych)
+library(table1)
+library(Hmisc)
+getwd()
+
+load("/Users/carmenrodriguez/Desktop/Research Projects/Census Data/censusdata_updated.RData")
+```
+
+
+##  Correlations  between potential SES variables
+
+```{r eval=FALSE, include=FALSE}
+
+acs5_2010_corr1<-acs5_2010_wide %>% select(HighSchoolHigherP_2010,BachelorHigherP_2010, 
+      RenterOccupiedUnitP_2010, OwnerOccupiedUnitP_2010,
+      UnemployementP_2010, BelowPovertyLineP_2010, Education9years_2010, 
+      Lackplumbing_2010,Femalehousehold_2010_P,
+      No_vehicle_2010,Two_or_more_rooms_2010_P,white_collar_occupation_2010, 
+      SNAP_2010_P,medianincome_2010) %>% rename(
+        `High School or Higher`= HighSchoolHigherP_2010,
+        `Bachelors or higher` = BachelorHigherP_2010,
+       `Renter-occupied housing` = RenterOccupiedUnitP_2010,
+       `Owner-occupied housing`= OwnerOccupiedUnitP_2010,
+       `Unemployment`= UnemployementP_2010, 
+       `Below poverty level`= BelowPovertyLineP_2010,
+       `Less than 9th grade education` =  Education9years_2010, 
+       `Lack complete plumbing` = Lackplumbing_2010,
+       `Female Household` = Femalehousehold_2010_P,
+      `No vehicle in household` = No_vehicle_2010,
+       `Two or more PPR`= Two_or_more_rooms_2010_P,
+       `White collar occupation` = white_collar_occupation_2010,
+      `SNAP benefits`=SNAP_2010_P,
+      `Median Income`= medianincome_2010)
+
+acs5_2015_corr1<-acs5_2015_wide %>% select(HighSchoolHigherP_2015,BachelorHigherP_2015, 
+      RenterOccupiedUnitP_2015, OwnerOccupiedUnitP_2015,
+      UnemployementP_2015, BelowPovertyLineP_2015, Education9years_2015, 
+      Lackplumbing_2015,Femalehousehold_2015_P,
+      No_vehicle_2015,Two_or_more_rooms_2015_P,white_collar_occupation_2015,SNAP_2015_P,medianincome_2015)%>% rename(
+        `High School or Higher`= HighSchoolHigherP_2015,
+        `Bachelors or higher` = BachelorHigherP_2015,
+       `Renter-occupied housing` = RenterOccupiedUnitP_2015,
+       `Owner-occupied housing`= OwnerOccupiedUnitP_2015,
+       `Unemployment`= UnemployementP_2015, 
+       `Below poverty level`= BelowPovertyLineP_2015,
+       `Less than 9th grade education` =  Education9years_2015, 
+       `Lack complete plumbing` = Lackplumbing_2015,
+       `Female Household` = Femalehousehold_2015_P,
+      `No vehicle in household` = No_vehicle_2015,
+       `Two or more PPR`= Two_or_more_rooms_2015_P,
+       `White collar occupation` = white_collar_occupation_2015,
+      `SNAP benefits`=SNAP_2015_P,
+      `Median Income`= medianincome_2015)
+
+acs5_2019_corr1<-acs5_2019_wide %>% select(HighSchoolHigherP_2019,BachelorHigherP_2019, 
+      RenterOccupiedUnitP_2019, OwnerOccupiedUnitP_2019,
+      UnemployementP_2019, BelowPovertyLineP_2019, Education9years_2019, 
+      Lackplumbing_2019,Femalehousehold_2019_P,
+      No_vehicle_2019,Two_or_more_rooms_2019_P,white_collar_occupation_2019, SNAP_2019_P, medianincome_2019)%>% rename(
+        `High School or Higher`= HighSchoolHigherP_2019,
+        `Bachelors or higher` = BachelorHigherP_2019,
+       `Renter-occupied housing` = RenterOccupiedUnitP_2019,
+       `Owner-occupied housing`= OwnerOccupiedUnitP_2019,
+       `Unemployment`= UnemployementP_2019, 
+       `Below poverty level`= BelowPovertyLineP_2019,
+       `Less than 9th grade education` =  Education9years_2019, 
+       `Lack complete plumbing` = Lackplumbing_2019,
+       `Female Household` = Femalehousehold_2019_P,
+      `No vehicle in household` = No_vehicle_2019,
+       `Two or more PPR`= Two_or_more_rooms_2019_P,
+       `White collar occupation` = white_collar_occupation_2019,
+      `SNAP benefits`=SNAP_2019_P,
+      `Median Income` = medianincome_2019)
+
+
+corrmatrix_2010<-round(rcorr(as.matrix(acs5_2010_corr1))$r,2)
+corrmatrix_2015<-round(rcorr(as.matrix(acs5_2015_corr1))$r,2)
+corrmatrix_2019<-round(rcorr(as.matrix(acs5_2019_corr1))$r,2)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Only get the upper triangle -- OLD correlation heatmap
+#http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+
+#pdf("correlations_3.21.22.pdf",width = 9,height = 9)
+# 2010
+corrmatrix_2010[upper.tri(corrmatrix_2010)]<-NA
+corrmatrix_2010a <- melt(corrmatrix_2010, na.rm = TRUE)
+
+ggplot(data = corrmatrix_2010a, aes(x=Var1, y=Var2, fill= value, label = value)) + 
+  geom_tile(color = "white") + labs(x = NULL, y = NULL, fill = "Pearson's\nCorrelation", title="ACS 2006-2010") + 
+  scale_fill_gradient2(mid="#FBFEF9",low="#0C6291",high="#A63446", limits=c(-1,1)) +
+  geom_text() +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1,size = 9, hjust = 1)) +
+  scale_x_discrete(expand=c(0,0)) + 
+  scale_y_discrete(expand=c(0,0)) 
+
+#2015
+corrmatrix_2015[upper.tri(corrmatrix_2015)]<-NA
+corrmatrix_2015a <- melt(corrmatrix_2015, na.rm = TRUE)
+
+ggplot(data = corrmatrix_2015a, aes(x=Var1, y=Var2, fill= value, label = value)) + 
+  geom_tile(color = "white") + labs(x = NULL, y = NULL, fill = "Pearson's\nCorrelation", title="ACS 2011-2015") + 
+  scale_fill_gradient2(mid="#FBFEF9",low="#0C6291",high="#A63446", limits=c(-1,1)) +
+  geom_text() +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1,size = 9, hjust = 1)) +
+  scale_x_discrete(expand=c(0,0)) + 
+  scale_y_discrete(expand=c(0,0)) 
+
+#2019
+corrmatrix_2019[upper.tri(corrmatrix_2019)]<-NA
+corrmatrix_2019a <- melt(corrmatrix_2019, na.rm = TRUE)
+
+ggplot(data = corrmatrix_2019a, aes(x=Var1, y=Var2, fill= value, label = value)) + 
+  geom_tile(color = "white") + labs(x = NULL, y = NULL, fill = "Pearson's\nCorrelation", title="ACS 2015-2019") + 
+  scale_fill_gradient2(mid="#FBFEF9",low="#0C6291",high="#A63446", limits=c(-1,1)) +
+  geom_text() +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1,size = 9, hjust = 1)) +
+  scale_x_discrete(expand=c(0,0)) + 
+  scale_y_discrete(expand=c(0,0)) 
+
+#dev.off()
+
+```
+
+
+## New correlation plots-- ENAR
+```{r}
+#https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html
+library(corrplot)
+library(RColorBrewer)
+corrmatrix_2010
+corrmatrix_2015
+corrmatrix_2019
+#http://www.sthda.com/english/wiki/visualize-correlation-matrix-using-correlogram
+
+jpeg("/Users/carmenrodriguez/Desktop/Research Projects/EC optimal care data/ECBayesBinMix Manuscript/corr10_3.2.24.jpg", width = 950, height = 950)
+corrplot(corrmatrix_2010, method = "circle", type = "lower",
+         col=brewer.pal(n=8, name="RdYlBu"), tl.col="black", tl.srt=45, tl.cex = 1.8, cl.ratio = 0.08,  mar=c(0,0,1,0))
+dev.off()
+
+jpeg("/Users/carmenrodriguez/Desktop/Research Projects/EC optimal care data/ECBayesBinMix Manuscript/corr15_3.2.24.jpg", width = 950, height = 950)
+corrplot(corrmatrix_2015, method = "circle", type = "lower",
+         col=brewer.pal(n=8, name="RdYlBu"), tl.col="black", tl.srt=45, tl.cex = 1.8, cl.ratio = 0.08,  mar=c(0,0,1,0))
+dev.off()
+
+jpeg("/Users/carmenrodriguez/Desktop/Research Projects/EC optimal care data/ECBayesBinMix Manuscript/corr19_3.2.24.jpg", width = 950, height = 950)
+corrplot(corrmatrix_2019, method = "circle", type = "lower",
+         col=brewer.pal(n=8, name="RdYlBu"), tl.col="black", tl.srt=45, tl.cex = 1.8, cl.ratio = 0.08,  mar=c(0,0,1,0))
+dev.off()
+```
+
+## Descriptive statistics
+
+```{r eval=FALSE, cache=TRUE, include=FALSE}
+acs_all1<-merge(acs5_2010_wide,acs5_2015_wide, by = c("GEOID"))
+acs_all<-merge(acs_all1, acs5_2019_wide, by = c("GEOID"))
+acs_all<-acs_all %>% select(-c("NAME.y", "NAME")) %>% rename( NAME = NAME.x)
+descriptives<-psych::describe(acs_all)
+new<-descriptives %>% filter(vars %in% c(12,47,82))
+```
+
+```{r eval=FALSE, include=FALSE}
+acs5_2010_long$year <-2010
+acs5_2015_long$year <-2015
+acs5_2019_long$year <-2019
+acs_all_long<-rbind(acs5_2010_long, acs5_2015_long, acs5_2019_long) %>% arrange(GEOID, year)
+acs_all_long$year<- as.factor(acs_all_long$year)
+head(acs_all_long)
+
+
+```
+
+
+# Census tract map highlighting all census tracts included for Massachusetts data
+
+```{r eval=FALSE, include=FALSE}
+#Extract census tract information from GEOID
+###https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html
+head(acs_all)
+# tract = last 6 digits of the GEOID
+acs_all_comp<- acs_all[complete.cases(acs_all),] #1451 have complete data on all SES variables we pulled from ACS for all three waves
+census_tract_acs<-str_sub(acs_all_comp$GEOID,start=6, end = 11) 
+
+census_tracts_ehr<-read_excel("/Users/carmenrodriguez/OneDrive - Harvard University/EC Data/ec_ma_071622.xlsx") #11287 observations after exclusions--see flowchart
+length(unique(census_tracts_ehr$census_tract)) #1420 unique cts
+
+census_tract_ehr_c<- unique(census_tracts_ehr$census_tract) 
+# %>% as.data.frame()
+# names(census_tract_ehr)<- "census_tract"
+
+
+#Census tracts that are in the EC data for which we have SES variables
+#census_tract_SES<-census_tract_ehr %>% filter(census_tract %in%  census_tract_acs)#1417
+
+```
+
+```{r eval=FALSE, include=FALSE}
+acs_all$census_tract_acs<-str_sub(acs_all$GEOID,start=6, end = 11)
+acs_all$countycode<-str_sub(acs_all$GEOID,start=3, end = 5)
+
+# census_tract_ehr<-unique(census_tracts_ehr$census_tract)
+
+census_tract_acs<-as.data.frame(acs_all$census_tract_acs)
+names(census_tract_acs)<- "census_tract"
+
+census_tract_acs<-census_tract_acs %>% mutate(indicator = ifelse(census_tract %in% census_tract_ehr_c, 1, 0))
+#table(census_tract_acs$indicator) #1: 1429, 0: 49
+
+#Same census tract but a different county
+acs_all[duplicated(acs_all$census_tract_acs), ]
+CTS<-acs_all %>% filter(census_tract_acs %in% c("990000", "010500", "010600", "040100", "040200", "040300", "040600")) %>% select(GEOID, census_tract_acs, NAME) %>% arrange(census_tract_acs)
+
+CTS
+```
