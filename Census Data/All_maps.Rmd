@@ -22,12 +22,11 @@ library(tigris)
 library(crsuggest)
 
 # Define your Census API key and set it with census_api_key()
-#census_api_key("db6e734054a38a24963f654c19b83e7ffca8dd0f", install = TRUE, overwrite = TRUE) #only need to run once
 
-readRenviron("~/.Renviron") #run this to use  API key
+#readRenviron("~/.Renviron") #run this to use  API key
 
 #Check API key
-Sys.getenv("CENSUS_API_KEY")
+#Sys.getenv("CENSUS_API_KEY")
 ```
 
 

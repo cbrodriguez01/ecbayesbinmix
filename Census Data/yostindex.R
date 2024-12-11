@@ -16,10 +16,10 @@ library(tigris)
 library(scales)
 `%!in%` <- Negate(`%in%`)
 #Census API
-readRenviron("~/.Renviron") #run this to use  API key
-census_api_key("39161c3ce4709a7b70320416e2762a2ace0e66d0")
+#readRenviron("~/.Renviron") #run this to use  API key
+#census_api_key()
 #Check API key
-Sys.getenv("CENSUS_API_KEY")
+#Sys.getenv("CENSUS_API_KEY")
 
 #Example of variable search using API through tidycensus
 v10_acsprofile<-load_variables(2010, "acs5/profile", cache = TRUE)

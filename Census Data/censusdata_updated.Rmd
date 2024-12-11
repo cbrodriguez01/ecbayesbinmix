@@ -9,14 +9,6 @@ output:
 geometry: left=1cm,right=1cm,top=1cm,bottom=1cm
 ---
 
-```{r}
-#ONLY NEED TO DO THIS ONCE!!!!!!
-#library(devtools)
-#install.packages("rgdal", configure.args = c("--with-proj-lib=/usr/local/lib/", "--with-proj-include=/usr/local/include/"))
-#install.packages("sf", configure.args="--with-gdal-config=/usr/local/gdal-3.4.1/bin/gdal-config --with-geos-config=/usr/local/bin/geos-config")
-
-```
-
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 #--------------Load the tidycensus package into your R session-----------------
 library(tidycensus)
@@ -32,12 +24,9 @@ library(readxl)
 # Set up Census API Key 
 ```{r include=FALSE}
 # Define your Census API key and set it with census_api_key()
-#census_api_key("db6e734054a38a24963f654c19b83e7ffca8dd0f", install = TRUE, overwrite = TRUE) #only need to run once
-
-readRenviron("~/.Renviron") #run this to use  API key
-
+#readRenviron("~/.Renviron") #run this to use  API key
 #Check API key
-Sys.getenv("CENSUS_API_KEY")
+#Sys.getenv("CENSUS_API_KEY")
 ```
 
 ## Variable selection (CLEAN UP)
