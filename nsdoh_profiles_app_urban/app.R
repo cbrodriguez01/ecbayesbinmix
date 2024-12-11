@@ -86,7 +86,7 @@ ui <- fluidPage(
     column(
       width = 2,
       tags$a(
-        href = "https://www.google.com",  # Replace with your study's link
+        href = "http://arxiv.org/abs/2412.07134",  # Replace with your study's link
         target = "_blank",  # Opens in a new tab
         class = "btn btn-primary",  # Bootstrap styling for a button
         "View the Study",
