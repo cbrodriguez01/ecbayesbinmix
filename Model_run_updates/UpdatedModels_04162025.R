@@ -10,7 +10,6 @@ library(coda)
 library(tidyverse)
 library(DescTools)
 
-setwd("/n/home03/crodriguezcabrera/tests/")
 #PLAN
 # 1. Only include ACS 2015-2019
 # 2. Tuning heats for achieving reasonable acceptance rates
@@ -136,8 +135,8 @@ for (kp in Kprior) {
 }
 
 colnames(results_summary)<-c("Kprior", "gamma_label", "deltatemp", "swap_rate", "mapK")
-write.csv(results_summary, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model Outputs/ACS19model_summary_results14vars_2025.csv", row.names = FALSE)
-saveRDS(model_outputs, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model Outputs/ACS19_14vars_full_model_outputs2025.rds")
+write.csv(results_summary, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model_run_updates/ACS19model_summary_results14vars_2025.csv", row.names = FALSE)
+saveRDS(model_outputs, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model_run_updates/ACS19_14vars_full_model_outputs2025.rds")
 
 
 
