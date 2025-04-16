@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -c 5  
+#SBATCH -c 8  
 #SBATCH -p shared 
 #SBATCH --mem=64000 
 #SBATCH -t 0-35:00:00 
