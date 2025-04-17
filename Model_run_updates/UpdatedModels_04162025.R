@@ -75,7 +75,7 @@ generateHeats<-function(deltatempvec, npchains){
 
 
 #Dataset
-acs19_bin<-readRDS("censusdata_bin.rds")
+acs19_bin<-readRDS("/n/home03/crodriguezcabrera/ecbayesbinmix/Model_run_updates/censusdata_bin.rds")
 str(acs19_bin)
 acs19_bin_rowGEOID<- as.matrix(acs19_bin %>% select(-c(GEOID, NAME)))
 acs19_bin_rowGEOID <-apply(acs19_bin_rowGEOID,2, as.numeric)
