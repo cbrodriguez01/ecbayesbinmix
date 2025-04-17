@@ -118,11 +118,11 @@ for (kp in Kprior) {
       
       # Extract  swap rate and Kmap
       swap_rate <- model_output[[1]]$chainInfo[2]
-      mapK <- Mode(model_output[[1]]$K.mcmc)[1]
+      #mapK <- Mode(model_output[[1]]$K.mcmc)[1]
       
+     
       # Save summary
-      # Save summary
-      res<-c(kp, gamma_label, deltatemp, swap_rate, mapK)
+      res<-c(kp, gamma_label, deltatemp, swap_rate)
       results_summary <- rbind(results_summary,res)
       
       # Create a unique name for this model run
@@ -134,7 +134,7 @@ for (kp in Kprior) {
   }
 }
 
-colnames(results_summary)<-c("Kprior", "gamma_label", "deltatemp", "swap_rate", "mapK")
+colnames(results_summary)<-c("Kprior", "gamma_label", "deltatemp", "swap_rate")
 write.csv(results_summary, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model_run_updates/ACS19model_summary_results14vars_2025.csv", row.names = FALSE)
 saveRDS(model_outputs, "/n/home03/crodriguezcabrera/ecbayesbinmix/Model_run_updates/ACS19_14vars_full_model_outputs2025.rds")
 
