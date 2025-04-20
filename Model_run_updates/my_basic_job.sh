@@ -4,8 +4,8 @@
 #SBATCH -p shared 
 #SBATCH --mem=64000 
 #SBATCH -t 0-35:00:00 
-#SBATCH -o myoutput_updatedmods14v_4.16_%j.out 
-#SBATCH -e myerrors_updatedmods14v_4.16_%j.err  
+#SBATCH -o myoutput_updatedmods14v_4.18_%j.out 
+#SBATCH -e myerrors_updatedmods14v_4.18_%j.err  
 #SBATCH --mail-type=BEGIN,END,FAIL  # Mail notifications
 #SBATCH --mail-user=crodriguezcabrera@g.harvard.edu   # Account to email
 

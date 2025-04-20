@@ -91,7 +91,7 @@ m<-1500
 burnin<-500
 gammalist<-list(rep(1, Kmax),rep((1/Kmax),Kmax))
 gamma_labels <-c("DirichSym", "DirichPAprox")
-deltatemps<-c(0.005,0.01,0.025, 0.05,0.1)
+deltatemps<-c(0.01,0.025, 0.05,0.1)
 heatslist<-generateHeats(deltatemps, nChains)
 heatsid<-paste0("deltatemp_", formatC(deltatemps, format = "f", digits = 3))
 names(heatslist) <-heatsid

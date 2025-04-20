@@ -1,0 +1,357 @@
+'data.frame':	1478 obs. of  16 variables:
+ $ GEOID             : chr  "25001010100" "25001010206" "25001010208" "25001010304" ...
+ $ NAME              : chr  "Census Tract 101, Barnstable County, Massachusetts" "Census Tract 102.06, Barnstable County, Massachusetts" "Census Tract 102.08, Barnstable County, Massachusetts" "Census Tract 103.04, Barnstable County, Massachusetts" ...
+ $ medianincome      : Factor w/ 2 levels "0","1": 1 1 1 2 1 1 2 1 2 1 ...
+ $ Femalehousehold   : Factor w/ 2 levels "0","1": 1 2 1 1 2 1 1 1 1 1 ...
+ $ NoHSDiploma       : Factor w/ 2 levels "0","1": 1 1 2 1 1 1 1 1 1 1 ...
+ $ crowded_housing   : Factor w/ 2 levels "0","1": 2 2 1 2 1 2 1 1 1 1 ...
+ $ working_class     : Factor w/ 2 levels "0","1": 1 2 1 2 2 2 1 1 2 1 ...
+ $ Unemployement     : Factor w/ 2 levels "0","1": 2 1 2 1 1 1 1 1 1 1 ...
+ $ RenterOccupiedUnit: Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+ $ No_vehicle        : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 2 1 1 ...
+ $ NHB               : Factor w/ 2 levels "0","1": 1 1 2 1 1 2 1 1 1 1 ...
+ $ NHA               : Factor w/ 2 levels "0","1": 1 2 1 2 1 1 1 1 1 1 ...
+ $ Hispanic          : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+ $ ENProficiency     : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+ $ SNAP              : Factor w/ 2 levels "0","1": 1 1 1 1 1 2 2 1 1 1 ...
+ $ lcplumbing        : Factor w/ 2 levels "0","1": 2 2 1 1 2 2 1 2 1 2 ...
+    [NOTE]: Found  24  rows with missing values. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.005_poisson_DirichSym1'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.005_poisson_DirichSym2'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.005_poisson_DirichSym3'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.005_poisson_DirichSym4'. 
+    [NOTE]: screen output from multiple threads is redirected to '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.005_poisson_DirichSym-sampler.log'. 
+
+kFile
+    3     4     5     6     7     8     9    10 
+0.007 0.123 0.265 0.248 0.227 0.028 0.081 0.021 
+
+Most probable model: K = 5 with P(K = 5) = 0.265 
+
+Dealing with Label Switching for K = 5 
+Found new Complete MLE: -11277.9946348032 
+Found new Complete MLE: -11277.8143426605 
+ classification probs: 37.7% completed 
+Found new Complete MLE: -11275.7016527062 
+Found new Complete MLE: -11253.8546556231 
+Found new Complete MLE: -11241.1807879323 
+ classification probs: 75.5% completed 
+proc.time for classification probabilities: 7.01 
+estimated missing data file written to: 'xEstimated.txt' 
+
+    ......................................................................................
+    . Method                         Time (sec)           Status                         . 
+    ......................................................................................
+    . STEPHENS                       3.651                Converged (5 iterations)       . 
+    . ECR                            0.107                OK                             . 
+    . ECR-ITERATIVE-1                1.595                Converged (4 iterations)       . 
+    ......................................................................................
+
+    Relabelling all methods according to method STEPHENS ... done!
+    Retrieve the 3 permutation arrays by typing:
+        [...]$permutations$"STEPHENS"
+        [...]$permutations$"ECR"
+        [...]$permutations$"ECR-ITERATIVE-1"
+    Retrieve the 3 best clusterings: [...]$clusters
+    Retrieve the 3 CPU times: [...]$timings
+    Retrieve the 3 X 3 similarity matrix: [...]$similarity
+    Label switching finished. Total time: 5.6 seconds. 
+raw MCMC parameters for most probable K written to: 'rawMCMC.mapK.5.txt'  
+raw MCMC latent allocations for most probable K written to: 'z.mapK.5.txt'  
+reordered MCMC output written to:  
+     (Method 1):     'reorderedMCMC-ECR.mapK.5.txt' 
+     (Method 2):     'reorderedMCMC-ECR-ITERATIVE1.mapK.5.txt' 
+     (Method 3):     'reorderedMCMC-STEPHENS.mapK.5.txt' 
+reordered single best clusterings written to: 'reorderedSingleBestClusterings.mapK.5.txt'  
+reordered MCMC latent allocations for most probable K written to:  
+     (Method 1):     'z.ECR.mapK.5.txt' 
+     (Method 2):     'z.KL.mapK.5.txt' 
+     (Method 3):     'z.ECR-ITERATIVE1.mapK.5.txt' 
+    [NOTE]: Found  24  rows with missing values. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.010_poisson_DirichSym1'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.010_poisson_DirichSym2'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.010_poisson_DirichSym3'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.010_poisson_DirichSym4'. 
+    [NOTE]: screen output from multiple threads is redirected to '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.010_poisson_DirichSym-sampler.log'. 
+
+kFile
+    5     6     7     8     9    10    11 
+0.178 0.071 0.631 0.056 0.018 0.042 0.004 
+
+Most probable model: K = 7 with P(K = 7) = 0.631 
+
+Dealing with Label Switching for K = 7 
+Found new Complete MLE: -11282.9402675346 
+Found new Complete MLE: -11262.5516886844 
+Found new Complete MLE: -11239.3808620027 
+Found new Complete MLE: -11231.0493568134 
+Found new Complete MLE: -11225.051036011 
+Found new Complete MLE: -11217.2801878653 
+ classification probs: 15.8% completed 
+ classification probs: 31.7% completed 
+ classification probs: 47.5% completed 
+Found new Complete MLE: -11201.2153410125 
+ classification probs: 63.4% completed 
+ classification probs: 79.2% completed 
+ classification probs: 95.1% completed 
+proc.time for classification probabilities: 18.81 
+estimated missing data file written to: 'xEstimated.txt' 
+
+    ......................................................................................
+    . Method                         Time (sec)           Status                         . 
+    ......................................................................................
+    . STEPHENS                       12.144               Converged (4 iterations)       . 
+    . ECR                            0.319                OK                             . 
+    . ECR-ITERATIVE-1                2.351                Converged (3 iterations)       . 
+    ......................................................................................
+
+    Relabelling all methods according to method STEPHENS ... done!
+    Retrieve the 3 permutation arrays by typing:
+        [...]$permutations$"STEPHENS"
+        [...]$permutations$"ECR"
+        [...]$permutations$"ECR-ITERATIVE-1"
+    Retrieve the 3 best clusterings: [...]$clusters
+    Retrieve the 3 CPU times: [...]$timings
+    Retrieve the 3 X 3 similarity matrix: [...]$similarity
+    Label switching finished. Total time: 15.3 seconds. 
+raw MCMC parameters for most probable K written to: 'rawMCMC.mapK.7.txt'  
+raw MCMC latent allocations for most probable K written to: 'z.mapK.7.txt'  
+reordered MCMC output written to:  
+     (Method 1):     'reorderedMCMC-ECR.mapK.7.txt' 
+     (Method 2):     'reorderedMCMC-ECR-ITERATIVE1.mapK.7.txt' 
+     (Method 3):     'reorderedMCMC-STEPHENS.mapK.7.txt' 
+reordered single best clusterings written to: 'reorderedSingleBestClusterings.mapK.7.txt'  
+reordered MCMC latent allocations for most probable K written to:  
+     (Method 1):     'z.ECR.mapK.7.txt' 
+     (Method 2):     'z.KL.mapK.7.txt' 
+     (Method 3):     'z.ECR-ITERATIVE1.mapK.7.txt' 
+    [NOTE]: Found  24  rows with missing values. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.025_poisson_DirichSym1'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.025_poisson_DirichSym2'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.025_poisson_DirichSym3'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.025_poisson_DirichSym4'. 
+    [NOTE]: screen output from multiple threads is redirected to '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.025_poisson_DirichSym-sampler.log'. 
+
+kFile
+    4     5     6     7 
+0.125 0.113 0.070 0.692 
+
+Most probable model: K = 7 with P(K = 7) = 0.692 
+
+Dealing with Label Switching for K = 7 
+Found new Complete MLE: -11288.7010363531 
+Found new Complete MLE: -11278.8728407448 
+Found new Complete MLE: -11260.4476266689 
+Found new Complete MLE: -11247.8574606111 
+Found new Complete MLE: -11230.3063733213 
+Found new Complete MLE: -11226.9982754157 
+ classification probs: 14.5% completed 
+Found new Complete MLE: -11219.5985423531 
+ classification probs: 28.9% completed 
+ classification probs: 43.4% completed 
+ classification probs: 57.8% completed 
+Found new Complete MLE: -11205.7181210935 
+ classification probs: 72.3% completed 
+ classification probs: 86.7% completed 
+proc.time for classification probabilities: 20.87 
+estimated missing data file written to: 'xEstimated.txt' 
+
+    ......................................................................................
+    . Method                         Time (sec)           Status                         . 
+    ......................................................................................
+    . STEPHENS                       9.678                Converged (3 iterations)       . 
+    . ECR                            0.351                OK                             . 
+    . ECR-ITERATIVE-1                3.409                Converged (4 iterations)       . 
+    ......................................................................................
+
+    Relabelling all methods according to method STEPHENS ... done!
+    Retrieve the 3 permutation arrays by typing:
+        [...]$permutations$"STEPHENS"
+        [...]$permutations$"ECR"
+        [...]$permutations$"ECR-ITERATIVE-1"
+    Retrieve the 3 best clusterings: [...]$clusters
+    Retrieve the 3 CPU times: [...]$timings
+    Retrieve the 3 X 3 similarity matrix: [...]$similarity
+    Label switching finished. Total time: 14 seconds. 
+raw MCMC parameters for most probable K written to: 'rawMCMC.mapK.7.txt'  
+raw MCMC latent allocations for most probable K written to: 'z.mapK.7.txt'  
+reordered MCMC output written to:  
+     (Method 1):     'reorderedMCMC-ECR.mapK.7.txt' 
+     (Method 2):     'reorderedMCMC-ECR-ITERATIVE1.mapK.7.txt' 
+     (Method 3):     'reorderedMCMC-STEPHENS.mapK.7.txt' 
+reordered single best clusterings written to: 'reorderedSingleBestClusterings.mapK.7.txt'  
+reordered MCMC latent allocations for most probable K written to:  
+     (Method 1):     'z.ECR.mapK.7.txt' 
+     (Method 2):     'z.KL.mapK.7.txt' 
+     (Method 3):     'z.ECR-ITERATIVE1.mapK.7.txt' 
+    [NOTE]: Found  24  rows with missing values. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.050_poisson_DirichSym1'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.050_poisson_DirichSym2'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.050_poisson_DirichSym3'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.050_poisson_DirichSym4'. 
+    [NOTE]: screen output from multiple threads is redirected to '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.050_poisson_DirichSym-sampler.log'. 
+
+kFile
+    5     6 
+0.061 0.939 
+
+Most probable model: K = 6 with P(K = 6) = 0.939 
+
+Dealing with Label Switching for K = 6 
+Found new Complete MLE: -11310.3044407498 
+Found new Complete MLE: -11297.0910582056 
+Found new Complete MLE: -11293.0826818384 
+Found new Complete MLE: -11289.0874169688 
+Found new Complete MLE: -11263.747471471 
+ classification probs: 10.6% completed 
+Found new Complete MLE: -11259.3349438365 
+ classification probs: 21.3% completed 
+ classification probs: 31.9% completed 
+Found new Complete MLE: -11256.137443928 
+Found new Complete MLE: -11253.8444419351 
+ classification probs: 42.6% completed 
+Found new Complete MLE: -11247.4833194735 
+ classification probs: 53.2% completed 
+ classification probs: 63.9% completed 
+ classification probs: 74.5% completed 
+ classification probs: 85.2% completed 
+ classification probs: 95.8% completed 
+proc.time for classification probabilities: 25.3 
+estimated missing data file written to: 'xEstimated.txt' 
+
+    ......................................................................................
+    . Method                         Time (sec)           Status                         . 
+    ......................................................................................
+    . STEPHENS                       12.583               Converged (4 iterations)       . 
+    . ECR                            0.429                OK                             . 
+    . ECR-ITERATIVE-1                3.016                Converged (3 iterations)       . 
+    ......................................................................................
+
+    Relabelling all methods according to method STEPHENS ... done!
+    Retrieve the 3 permutation arrays by typing:
+        [...]$permutations$"STEPHENS"
+        [...]$permutations$"ECR"
+        [...]$permutations$"ECR-ITERATIVE-1"
+    Retrieve the 3 best clusterings: [...]$clusters
+    Retrieve the 3 CPU times: [...]$timings
+    Retrieve the 3 X 3 similarity matrix: [...]$similarity
+    Label switching finished. Total time: 16.7 seconds. 
+raw MCMC parameters for most probable K written to: 'rawMCMC.mapK.6.txt'  
+raw MCMC latent allocations for most probable K written to: 'z.mapK.6.txt'  
+reordered MCMC output written to:  
+     (Method 1):     'reorderedMCMC-ECR.mapK.6.txt' 
+     (Method 2):     'reorderedMCMC-ECR-ITERATIVE1.mapK.6.txt' 
+     (Method 3):     'reorderedMCMC-STEPHENS.mapK.6.txt' 
+reordered single best clusterings written to: 'reorderedSingleBestClusterings.mapK.6.txt'  
+reordered MCMC latent allocations for most probable K written to:  
+     (Method 1):     'z.ECR.mapK.6.txt' 
+     (Method 2):     'z.KL.mapK.6.txt' 
+     (Method 3):     'z.ECR-ITERATIVE1.mapK.6.txt' 
+    [NOTE]: Found  24  rows with missing values. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.100_poisson_DirichSym1'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.100_poisson_DirichSym2'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.100_poisson_DirichSym3'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.100_poisson_DirichSym4'. 
+    [NOTE]: screen output from multiple threads is redirected to '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-16_deltatemp_0.100_poisson_DirichSym-sampler.log'. 
+
+kFile
+    8     9    10 
+0.407 0.303 0.290 
+
+Most probable model: K = 8 with P(K = 8) = 0.407 
+
+Dealing with Label Switching for K = 8 
+Found new Complete MLE: -11323.2575256678 
+Found new Complete MLE: -11320.7243891597 
+Found new Complete MLE: -11278.03482078 
+ classification probs: 24.6% completed 
+ classification probs: 49.1% completed 
+Found new Complete MLE: -11263.6502309031 
+ classification probs: 73.7% completed 
+Found new Complete MLE: -11242.0632707873 
+ classification probs: 98.3% completed 
+proc.time for classification probabilities: 14.81 
+estimated missing data file written to: 'xEstimated.txt' 
+
+    ......................................................................................
+    . Method                         Time (sec)           Status                         . 
+    ......................................................................................
+    . STEPHENS                       12.314               Converged (5 iterations)       . 
+    . ECR                            0.227                OK                             . 
+    . ECR-ITERATIVE-1                2.255                Converged (4 iterations)       . 
+    ......................................................................................
+
+    Relabelling all methods according to method STEPHENS ... done!
+    Retrieve the 3 permutation arrays by typing:
+        [...]$permutations$"STEPHENS"
+        [...]$permutations$"ECR"
+        [...]$permutations$"ECR-ITERATIVE-1"
+    Retrieve the 3 best clusterings: [...]$clusters
+    Retrieve the 3 CPU times: [...]$timings
+    Retrieve the 3 X 3 similarity matrix: [...]$similarity
+    Label switching finished. Total time: 15.1 seconds. 
+raw MCMC parameters for most probable K written to: 'rawMCMC.mapK.8.txt'  
+raw MCMC latent allocations for most probable K written to: 'z.mapK.8.txt'  
+reordered MCMC output written to:  
+     (Method 1):     'reorderedMCMC-ECR.mapK.8.txt' 
+     (Method 2):     'reorderedMCMC-ECR-ITERATIVE1.mapK.8.txt' 
+     (Method 3):     'reorderedMCMC-STEPHENS.mapK.8.txt' 
+reordered single best clusterings written to: 'reorderedSingleBestClusterings.mapK.8.txt'  
+reordered MCMC latent allocations for most probable K written to:  
+     (Method 1):     'z.ECR.mapK.8.txt' 
+     (Method 2):     'z.KL.mapK.8.txt' 
+     (Method 3):     'z.ECR-ITERATIVE1.mapK.8.txt' 
+    [NOTE]: Found  24  rows with missing values. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-17_deltatemp_0.005_poisson_DirichPAprox1'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-17_deltatemp_0.005_poisson_DirichPAprox2'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-17_deltatemp_0.005_poisson_DirichPAprox3'. 
+            Create temporary directory: '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-17_deltatemp_0.005_poisson_DirichPAprox4'. 
+    [NOTE]: screen output from multiple threads is redirected to '/n/home03/crodriguezcabrera/BayesBinMix_Project/Updates/acs19_2025-04-17_deltatemp_0.005_poisson_DirichPAprox-sampler.log'. 
+
+kFile
+    9    10    11    12    13    14 
+0.039 0.371 0.370 0.178 0.040 0.002 
+
+Most probable model: K = 10 with P(K = 10) = 0.371 
+
+Dealing with Label Switching for K = 10 
+Found new Complete MLE: -11348.3021696254 
+Found new Complete MLE: -11336.8407699285 
+Found new Complete MLE: -11336.0972291246 
+Found new Complete MLE: -11328.0541980915 
+ classification probs: 27% completed 
+Found new Complete MLE: -11314.8993198183 
+Found new Complete MLE: -11303.9954678881 
+ classification probs: 53.9% completed 
+ classification probs: 80.9% completed 
+proc.time for classification probabilities: 16.44 
+estimated missing data file written to: 'xEstimated.txt' 
+
+    ......................................................................................
+    . Method                         Time (sec)           Status                         . 
+    ......................................................................................
+    . STEPHENS                       13.652               Converged (4 iterations)       . 
+    . ECR                            0.266                OK                             . 
+    . ECR-ITERATIVE-1                1.937                Converged (3 iterations)       . 
+    ......................................................................................
+
+    Relabelling all methods according to method STEPHENS ... done!
+    Retrieve the 3 permutation arrays by typing:
+        [...]$permutations$"STEPHENS"
+        [...]$permutations$"ECR"
+        [...]$permutations$"ECR-ITERATIVE-1"
+    Retrieve the 3 best clusterings: [...]$clusters
+    Retrieve the 3 CPU times: [...]$timings
+    Retrieve the 3 X 3 similarity matrix: [...]$similarity
+    Label switching finished. Total time: 16.2 seconds. 
+raw MCMC parameters for most probable K written to: 'rawMCMC.mapK.10.txt'  
+raw MCMC latent allocations for most probable K written to: 'z.mapK.10.txt'  
+reordered MCMC output written to:  
+     (Method 1):     'reorderedMCMC-ECR.mapK.10.txt' 
+     (Method 2):     'reorderedMCMC-ECR-ITERATIVE1.mapK.10.txt' 
+     (Method 3):     'reorderedMCMC-STEPHENS.mapK.10.txt' 
+reordered single best clusterings written to: 'reorderedSingleBestClusterings.mapK.10.txt'  
+reordered MCMC latent allocations for most probable K written to:  
+     (Method 1):     'z.ECR.mapK.10.txt' 
+     (Method 2):     'z.KL.mapK.10.txt' 
+     (Method 3):     'z.ECR-ITERATIVE1.mapK.10.txt' 
