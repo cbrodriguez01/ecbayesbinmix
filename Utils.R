@@ -23,9 +23,7 @@ second_highest_index<-function(vec){
   return(vec1[s-1])
 }
 
-
 ############### Plots for model output ################
-#02/1/24
 
 #Generate pastel colors for plot
 generate_pastel_colors <- function(n_ses){
@@ -35,54 +33,16 @@ generate_pastel_colors <- function(n_ses){
   hsv(h = hues, s = s, v = v)
 }
 
-
 #' @description
-#' Create the long format dataset that has the estimated mean success probabilities and labels for the different SES variables and groups
+#' Create the long format dataset that has the estimated mean success probabilities and labels for the different NSDoH variables and groups
 #' 
 #' @param reslst list containing output from bayesbinmix function
 #' @param  mapK most probable K  from the model
 #' @param sesvars vector with variable names 
 #' @return a long-format dataset to be the input for profile figures
 
-# preparedat_fig<-function(reslst,mapK, sesvars){
-#   n_ses<-length(sesvars)
-#   dim<-n_ses*mapK
-#   stats<-summary(reslst$parameters.ecr.mcmc)$statistics[,1] #get the mean, can also get SE and quantiles 
-#   
-#   temp<-as.data.frame(stats[1:dim])
-#   
-#   probs<-c()
-#   indices <- seq(1, nrow(temp) * 1, by = mapK)
-#   for (k in indices){
-#     v<- temp[k:((k+mapK)-1),]
-#     probs<-cbind(probs, v)
-#   }
-#   
-#   prob_est<-cbind(1:mapK,probs)
-#   colnames(prob_est)<-c("cluster",sesvars)
-#   
-#   #Long format for ggplot
-#   prob_est_long<- prob_est %>% as.data.frame() %>% 
-#     pivot_longer(!cluster, names_to = "NSES_VARS",values_to = "theta_kj")
-#   
-#   # Group variables
-#   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
-#     NSES_VARS %in% c("Crowded housing","Lack complete plumbing", "No vehicle","Owner-occupied","Renter-occupied", "Female household") ~ 1,
-#     NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 2,
-#     NSES_VARS %in% c("Unemployment","Working class") ~ 4,
-#     NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits") ~ 3,
-#     NSES_VARS %in% c("Hispanic or Latino", "NH Black", "NH Asian", "Limited EN Proficiency") ~ 5,))
-#   
-#   
-#   prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:5, labels = c("Household", "Education", "Income", "Occupation", "Ethnic Minorities and Language"))
-#   
-#   
-#   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
-#   
-#   return(prob_est_long)
-# }
 
-preparedat_fig<-function(reslst,mapK, sesvars){
+preparedat_fig_updated<-function(reslst,mapK, sesvars){
   n_ses<-length(sesvars)
   dim<-n_ses*mapK
   stats<-summary(reslst$parameters.ecr.mcmc)$statistics[,1] #get the mean, can also get SE and quantiles 
@@ -101,23 +61,24 @@ preparedat_fig<-function(reslst,mapK, sesvars){
   
   #Long format for ggplot
   prob_est_long<- prob_est %>% as.data.frame() %>% 
-    pivot_longer(!cluster, names_to = "NSES_VARS",values_to = "theta_kj")
+    pivot_longer(!cluster, names_to = "NSDOH_VARS",values_to = "theta_kj")
   
   # Group variables
-  prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
-    NSES_VARS %in% c("Owner-occupied housing","Renter-occupied housing", "Crowded housing","Lack complete plumbing", "No vehicle") ~ 1,
-    NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 3,
-    NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits", "Unemployment","Working class","Female household") ~ 2,
-    NSES_VARS %in% c("Limited EN Proficiency", "Hispanic/Latino", "NH Black", "NH Asian") ~ 4,))
+  prob_est_long<-prob_est_long %>% mutate(NSDOH_group = case_when(
+    NSDOH_VARS %in% c("Renter-occupied housing", "Crowded housing","Lack complete plumbing", "No vehicle") ~ 1,
+    NSDOH_VARS %in% c("No HS Diploma") ~ 3,
+    NSDOH_VARS %in% c("Median income","SNAP benefits", "Unemployment","Working class","Female household") ~ 2,
+    NSDOH_VARS %in% c("Limited EN Proficiency", "Hispanic/Latino", "NH Black", "NH Asian") ~ 4,))
   
   
-  prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Housing conditions and resources", "Economic security", "Educational attainment", "Social and community context"))
+  prob_est_long$NSDOH_group<- factor(prob_est_long$NSDOH_group,levels = 1:4, labels = c("Housing conditions and resources", "Economic security", "Educational attainment", "Social and community context"))
   
   
-  prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
+  prob_est_long$NSDOH_VARS<- factor(prob_est_long$NSDOH_VARS, levels = unique(prob_est_long$NSDOH_VARS[order(prob_est_long$NSDOH_group)]))
   
   return(prob_est_long)
 }
+
 
 #' @description
 #' Summary plot for success probabilities/cluster profiles
@@ -164,13 +125,13 @@ plot_thetakj_indiv<-function(prob_est_long,mapK, color_palette, fig_title){
 plot_thetakj_group<-function(prob_est_long, color_palette, fig_title, numR = mapK, numC= 1){
   
   # Generate plot
-  prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
+  prob_est_long %>% ggplot(aes(x = NSDOH_VARS, y = theta_kj, fill = NSDOH_group)) +
     geom_col()  +
     facet_wrap(~cluster, nrow = numR, ncol = numC) + 
     scale_fill_manual(values = color_palette) + 
     labs(title = fig_title, x= "",
          y = "Probability",
-         fill = "Neighborhood SES Variables") +
+         fill = "Neighborhood SDoH Variables") +
     theme(text = element_text(size = 12),
           axis.text.x = element_text(size=10, angle=90, vjust = 0.75, hjust = 0.88), 
           axis.title.x = element_text(size = 8, color = "black", face = "bold"),
@@ -188,14 +149,14 @@ plot_thetakj_group<-function(prob_est_long, color_palette, fig_title, numR = map
 plot_thetakj_group_flipped<-function(prob_est_long,mapK, color_palette, fig_title){
   
   # Generate plot
-  prob_est_long %>% ggplot(aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
+  prob_est_long %>% ggplot(aes(x = NSDOH_VARS, y = theta_kj, fill = NSDOH_group)) +
     geom_col() +
     coord_flip() +
     facet_wrap(~cluster, nrow = mapK) + 
     scale_fill_manual(values = color_palette) + 
     labs(title = fig_title, x= "",  
          y = "Probability",
-         fill = "Neighborhood SES Variables") +
+         fill = "Neighborhood SDoH Variables") +
     theme(text = element_text(size = 12),
           axis.text.x = element_text(size=8), 
           axis.title.x = element_text(size = 5, color = "black", face = "bold"),
@@ -306,6 +267,11 @@ plot_barBin<-function(data,color_palette, fig_title,numR = mapK, numC= 1){
   
 }
 
+
+
+
+
+
 ############ Posterior Probabilitites ###############
 #' Extract params
 #' @param mapK infered # of cluster from model
@@ -380,5 +346,83 @@ posteriorprob<-function(X,theta, pk, mapK){
   }
   return(as.data.frame(pZij))
 }
+
+
+
+#-------Archived--------
+# preparedat_fig<-function(reslst,mapK, sesvars){
+#   n_ses<-length(sesvars)
+#   dim<-n_ses*mapK
+#   stats<-summary(reslst$parameters.ecr.mcmc)$statistics[,1] #get the mean, can also get SE and quantiles 
+#   
+#   temp<-as.data.frame(stats[1:dim])
+#   
+#   probs<-c()
+#   indices <- seq(1, nrow(temp) * 1, by = mapK)
+#   for (k in indices){
+#     v<- temp[k:((k+mapK)-1),]
+#     probs<-cbind(probs, v)
+#   }
+#   
+#   prob_est<-cbind(1:mapK,probs)
+#   colnames(prob_est)<-c("cluster",sesvars)
+#   
+#   #Long format for ggplot
+#   prob_est_long<- prob_est %>% as.data.frame() %>% 
+#     pivot_longer(!cluster, names_to = "NSES_VARS",values_to = "theta_kj")
+#   
+#   # Group variables
+#   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
+#     NSES_VARS %in% c("Crowded housing","Lack complete plumbing", "No vehicle","Owner-occupied","Renter-occupied", "Female household") ~ 1,
+#     NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 2,
+#     NSES_VARS %in% c("Unemployment","Working class") ~ 4,
+#     NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits") ~ 3,
+#     NSES_VARS %in% c("Hispanic or Latino", "NH Black", "NH Asian", "Limited EN Proficiency") ~ 5,))
+#   
+#   
+#   prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:5, labels = c("Household", "Education", "Income", "Occupation", "Ethnic Minorities and Language"))
+#   
+#   
+#   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
+#   
+#   return(prob_est_long)
+# }
+
+# preparedat_fig<-function(reslst,mapK, sesvars){
+#   n_ses<-length(sesvars)
+#   dim<-n_ses*mapK
+#   stats<-summary(reslst$parameters.ecr.mcmc)$statistics[,1] #get the mean, can also get SE and quantiles 
+#   
+#   temp<-as.data.frame(stats[1:dim])
+#   
+#   probs<-c()
+#   indices <- seq(1, nrow(temp) * 1, by = mapK)
+#   for (k in indices){
+#     v<- temp[k:((k+mapK)-1),]
+#     probs<-cbind(probs, v)
+#   }
+#   
+#   prob_est<-cbind(1:mapK,probs)
+#   colnames(prob_est)<-c("cluster",sesvars)
+#   
+#   #Long format for ggplot
+#   prob_est_long<- prob_est %>% as.data.frame() %>% 
+#     pivot_longer(!cluster, names_to = "NSES_VARS",values_to = "theta_kj")
+#   
+#   # Group variables
+#   prob_est_long<-prob_est_long %>% mutate(NSES_group = case_when(
+#     NSES_VARS %in% c("Owner-occupied housing","Renter-occupied housing", "Crowded housing","Lack complete plumbing", "No vehicle") ~ 1,
+#     NSES_VARS %in% c("< HS", " >= HS", " >= Bacherlors") ~ 3,
+#     NSES_VARS %in% c("Median income","Below 150% poverty","SNAP benefits", "Unemployment","Working class","Female household") ~ 2,
+#     NSES_VARS %in% c("Limited EN Proficiency", "Hispanic/Latino", "NH Black", "NH Asian") ~ 4,))
+#   
+#   
+#   prob_est_long$NSES_group<- factor(prob_est_long$NSES_group,levels = 1:4, labels = c("Housing conditions and resources", "Economic security", "Educational attainment", "Social and community context"))
+#   
+#   
+#   prob_est_long$NSES_VARS<- factor(prob_est_long$NSES_VARS, levels = unique(prob_est_long$NSES_VARS[order(prob_est_long$NSES_group)]))
+#   
+#   return(prob_est_long)
+# }
 
 

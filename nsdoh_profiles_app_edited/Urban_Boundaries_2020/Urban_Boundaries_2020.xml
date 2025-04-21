@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+    <idinfo>
+        <citation>
+            <citeinfo>
+                <origin/>
+                <pubdate>20240515</pubdate>
+                <title>UrbanBoundary2020</title>
+                <geoform>vector digital data</geoform>
+            </citeinfo>
+        </citation>
+        <descript>
+            <abstract>In 2020, the Census Bureau used the Census Block Group data to designate the urban boundaries by following the Census Bureau maintained road segments called TIGER. The Office of Transportation Planning, in cooperation with the regional planning agencies, adjusted the boundaries to follow the Road Inventory street segments, municipal boundaries, railroads, or water bodies. This polygon data layer represents the final version of the adjusted urban boundaries, which is used to determine the Road Inventory official roadway functional classification.</abstract>
+            <purpose>A layer delineating 2020 Urban Boundaries for transportation intended to be used for planning purposes.</purpose>
+        </descript>
+        <timeperd>
+            <timeinfo>
+                <sngdate>
+                    <caldate>20240515</caldate>
+                </sngdate>
+            </timeinfo>
+            <current>The geographic extent for this layer is the state of Massachusetts</current>
+        </timeperd>
+        <status>
+            <progress>Complete</progress>
+            <update>As needed</update>
+        </status>
+        <spdom>
+            <bounding>
+                <westbc>-73.529499</westbc>
+                <eastbc>-69.901324</eastbc>
+                <northbc>42.888311</northbc>
+                <southbc>41.231849</southbc>
+            </bounding>
+        </spdom>
+        <keywords>
+            <theme>
+                <themekt>ISO 19115 Topic Categories</themekt>
+                <themekey>boundaries</themekey>
+                <themekey>transportation</themekey>
+            </theme>
+            <theme>
+                <themekt>None</themekt>
+                <themekey>Boundaries</themekey>
+                <themekey>Urban</themekey>
+                <themekey>Boundary</themekey>
+                <themekey>Urban Boundary</themekey>
+                <themekey>Urban Areas</themekey>
+            </theme>
+        </keywords>
+        <accconst>None</accconst>
+        <useconst>Use limitationsThis layer was produced by the Office of Transportation Planning. The Federal Highway Administration provided funding for the production of this layer through the State Planning and Research Program.The location of the boundaries and/or features shown in this layer is approximate and are intended for planning purposes only. This layer is not intended to be used for survey, engineering or legal purposes.This data is in the public domain and therefore can be used by anyone for any purpose. MassDOT shall not be held liable for any errors in this data. This includes errors of omission, commission, errors concerning the content of the data, and relative and positional accuracy of the data. This data cannot be construed to be a legal document. Primary sources from which this data was compiled must be consulted for verification of information contained in this data.</useconst>
+        <ptcontac>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>MassDOT</cntorg>
+                    <cntper>Charlotte Mays</cntper>
+                </cntorgp>
+                <cntaddr>
+                    <addrtype>mailing and physical</addrtype>
+                </cntaddr>
+                <cntvoice>(857) 368-4447</cntvoice>
+                <cntemail>dot.gisservices@dot.state.ma.us</cntemail>
+            </cntinfo>
+        </ptcontac>
+        <ptcontac>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>MassDOT</cntorg>
+                    <cntper>GIS Services</cntper>
+                </cntorgp>
+                <cntaddr>
+                    <addrtype>mailing and physical</addrtype>
+                    <address>10 Park Plaza</address>
+                    <city>Boston</city>
+                    <state>MA</state>
+                    <postal>02116</postal>
+                </cntaddr>
+                <cntvoice>8573684447</cntvoice>
+                <cntemail>dot.gisservices@dot.state.ma.us</cntemail>
+            </cntinfo>
+        </ptcontac>
+        <ptcontac>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>MassDOT</cntorg>
+                    <cntper>GIS Services</cntper>
+                </cntorgp>
+                <cntaddr>
+                    <addrtype>mailing and physical</addrtype>
+                    <address>10 Park Plaza</address>
+                    <city>Boston</city>
+                    <state>MA</state>
+                    <postal>02116</postal>
+                </cntaddr>
+                <cntvoice>8573684447</cntvoice>
+                <cntemail>dot.gisservices@dot.state.ma.us</cntemail>
+            </cntinfo>
+        </ptcontac>
+        <datacred>MassDOT</datacred>
+        <native>Esri ArcGIS 13.1.0.41833</native>
+    </idinfo>
+    <spdoinfo>
+        <direct>Vector</direct>
+        <ptvctinf>
+            <sdtsterm>
+                <sdtstype>GT-polygon composed of chains</sdtstype>
+                <ptvctcnt>0</ptvctcnt>
+            </sdtsterm>
+        </ptvctinf>
+    </spdoinfo>
+    <eainfo>
+        <detailed>
+            <enttyp>
+                <enttypl>UrbanBoundary2020</enttypl>
+                <enttypd>Urban Boundaries 2020</enttypd>
+                <enttypds>MassDOT</enttypds>
+            </enttyp>
+            <attr>
+                <attrlabl>OBJECTID</attrlabl>
+                <attrdef>Internal feature number.</attrdef>
+                <attrdefs>Esri</attrdefs>
+                <attrdomv>
+                                        
+                    <udom>Sequential unique whole numbers that are automatically generated.</udom>
+                                    
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>Shape</attrlabl>
+                <attrdef>Feature geometry.</attrdef>
+                <attrdefs>Esri</attrdefs>
+                <attrdomv>
+                                        
+                    <udom>Coordinates defining the features.</udom>
+                                    
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>URBANAREANAME</attrlabl>
+                <attrdef>Name of the urban boundary as specified by the census urban areas.</attrdef>
+                <attrdefs>Census Urban Areas</attrdefs>
+                <attrdomv>
+                                        
+                    <udom>Amherst Town--Northampton--Easthampton Town
+Athol
+Barnstable Town
+Boston, MA--NH
+Greenfield
+Ipswich
+Lee
+Leominster-Fitchburg
+Nantucket
+Nashua, NH--MA
+New Bedford
+North Adams
+Pepperell
+Pittsfield
+Providence, RI--MA
+Provincetown
+Southbridge Town
+Spencer
+Springfield, MA--CT
+Sunderland--South Deerfield
+Vineyard Haven--Edgartown--Oak Bluffs
+Ware
+Worcester, MA--CT</udom>
+                                    
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>URBANAREACODE</attrlabl>
+                <attrdef>The code for each urban area as specified in the census urban areas</attrdef>
+                <attrdefs>Census Urban Areas</attrdefs>
+                <attrdomv>
+                                        
+                    <udom>2103
+3790
+5167
+9271
+34975
+41657
+48745
+49096
+61003
+61165
+61786
+63460
+68563
+69778
+72505
+72532
+83160
+83641
+83926
+85779
+90757
+91756
+97291</udom>
+                                    
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>URBANRURAL</attrlabl>
+                <attrdef>Federal Highway Administration (FHWA) types of urban areas. The census no longer distinguishes between types of urban areas, but FHWA still requires there to be a distinction.
+
+Urban area - An area with a population between 5,000 and 50,000 or at least 2,000 housing units
+Urbanized area - An area with a population of 50,000 or more</attrdef>
+                <attrdefs>FHWA</attrdefs>
+                <attrdomv>
+                                        
+                    <udom>Urbanized Area
+Urban Area</udom>
+                                    
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>URBANCODE</attrlabl>
+                <attrdef>The code that MassDOT designates for urban area</attrdef>
+                <attrdefs>MassDOT</attrdefs>
+                <attrdomv>
+                                        
+                    <udom>6 - Urbanized Area
+7 - Urban Area</udom>
+                                    
+                </attrdomv>
+            </attr>
+        </detailed>
+    </eainfo>
+    <metainfo>
+        <metd>20240515</metd>
+        <metc>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>MassDOT</cntorg>
+                    <cntper>Charles Major</cntper>
+                </cntorgp>
+                <cntaddr>
+                    <addrtype>mailing and physical</addrtype>
+                    <city>Boston</city>
+                    <state>MA</state>
+                    <postal>02116</postal>
+                    <country>US</country>
+                </cntaddr>
+                <cntvoice>(857) 368-4447</cntvoice>
+                <cntemail>dot.gisservices@dot.state.ma.us</cntemail>
+            </cntinfo>
+        </metc>
+        <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+        <metstdv>FGDC-STD-001-1998</metstdv>
+        <mettc>local time</mettc>
+    </metainfo>
+</metadata>
