@@ -20,35 +20,47 @@ tracts<-readRDS("tracts.rds")
 
 
 #----Merge with profiles
-profiles<-readRDS("nsdoh_data.rds") #data containig profiles for each census tracts. Also, added county labels
+profiles<-readRDS("nsdoh_data_042025.rds") #data containig profiles for each census tracts. Also, added county labels
 profiles <- profiles %>% select("GEOID","nsdoh_profiles")
 
-#profiles1 <- profiles %>% mutate(countyname = sub(",.*", "", CountyName))
 
 map19<- merge(tracts, profiles, by = "GEOID")
+map19$nsdoh_profiles <- factor(map19$nsdoh_profiles, labels = c("Profile 1", "Profile 2", "Profile 3",
+                                                                              "Profile 4", "Profile 5"))
+
 
 # Create a color palette  for profiles
 pal <- colorFactor(
   palette = c("#d62728","salmon1",  
-              "#9467bd","#2ca02c",
-              "#e377c2",  "#17becf", 
-              "#1f77b4", "#ffff00"),   # Colors corresponding to factor levels
+              "#2ca02c", "#e377c2",  "#1f77b4"),   # Colors corresponding to factor levels
   domain = map19$nsdoh_profiles
 )
 
-##Prepare results from mbmm 
-mbmm<-readRDS("mbmm_result.rds")
-#remember that we organized clusters by size
-mbmm$nsdoh_profile<- factor(mbmm$cluster, levels = 1:8,
-                            labels = c("Profile 1", "Profile 8", "Profile 2",
-                                       "Profile 6", "Profile 5", "Profile 7",
-                                       "Profile 4", "Profile 3"))
 
+
+##Prepare results from mbmm 
+mbmm<-readRDS("mbmm_results_042025.rds")
+#remember that we organized clusters by size
+mbmm$nsdoh_profile<- factor(mbmm$cluster_size, 
+                            labels = c("Profile 1", "Profile 2", "Profile 3",
+                                       "Profile 4", "Profile 5"))
+#write.csv(mbmm, file = "/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Tables/theta_kj_042025.csv")
 #2020 Urban boundaries for MA from MA GIS Data Hub (https://gis.data.mass.gov)
 urban_boundaries <- st_read("./Urban_Boundaries_2020/Urban_Boundaries_2020.shp") %>% select(geometry)
 urban_boundaries1 <- urban_boundaries %>% sf::st_transform('+proj=longlat +datum=WGS84')
 #urban2<-urban_areas(year = 2019) --how GEOID10?
 
+
+#MassGIS Data: 2020 Environmental Justice Populations--BLOCK GROUP LEVEL!
+# (i) the annual median household income is not more than 65 percent of the statewide annual median household income; 
+# (ii) minorities comprise 40 percent or more of the population; 
+# (iii) 25 percent or more of households lack English language proficiency; 
+# (iv) minorities comprise 25 percent or more of the population and the annual median household income 
+# of the municipality in which the neighborhood is located does not exceed 150 percent of the statewide annual median household income.
+
+EJP<-st_read("./ej2020/EJ_POLY.shp") 
+EJP1<-EJP %>% filter(EJ_CRITE_1 %in% c(2,3)) %>% select(geometry)  #filter to include BGs that meet all 3 criteria
+EJP1 <- EJP1 %>% sf::st_transform('+proj=longlat +datum=WGS84')
 
 # Define UI for application
 ui <- fluidPage(
@@ -105,8 +117,8 @@ ui <- fluidPage(
     column(
       width = 8,
       leafletOutput("map", width = "100%", height = "500px"),
-      #Add a check box for the urban layer underneath map
-      checkboxInput("show_urban", "Show Urban Boundaries 2020", value = FALSE)
+      checkboxInput("show_urban", "Show 2020 Urban Boundaries", value = FALSE),
+      checkboxInput("show_EJP", "Show 2020 Environmental Justice Populations", value = FALSE)
     ),
     column(
       width = 4,
@@ -120,7 +132,8 @@ ui <- fluidPage(
         SDoH indicators included in the model, grouped by domain, 
                 based on the assigned NSDoH profile.",
                 style = "font-size: 11px;"),
-        tags$li("Use check box to layer the 2020 urban boundaries for Massachusetts (MassGIS Data Hub).",
+        tags$li("Use check boxes to layer the 2020 urban boundaries or block groups boundaries for  Environmental Justice Populations 
+                (defined as: limited English household(E) + minority population (M) AND  M + E + median household income < 65% of the statewide annual median household income) for Massachusetts (MassGIS Data Hub).",
                 style = "font-size: 11px;")
       )
     )
@@ -134,8 +147,8 @@ server <- function(input, output, session) {
     leaflet(map19 %>% sf::st_transform('+proj=longlat +datum=WGS84')) %>%
       addTiles() %>% 
       addPolygons(fillColor = ~pal(nsdoh_profiles),  # Set the fill color to profile colors
-                  color = "white", weight = 0.5, opacity = 1, fillOpacity = 0.5,  # No fill color, transparent polygons
-                  highlight = highlightOptions(weight = 5, color = "#666", fillOpacity = 0.3),  # Highlight on hover
+                  color = "white", weight = 0.5, opacity = 1, fillOpacity = 0.4,  # No fill color, transparent polygons
+                  highlight = highlightOptions(weight = 5, color = "#666", fillOpacity = 0.6),  # Highlight on hover
                   layerId = ~NAME1,  # Set layerId to NAME1 to ensure that input$map_shape_mouseover$id captures the ID of the hovered census tract.
                   label =~paste(NAME1, ":", nsdoh_profiles), #show county name: census tract: profile assignment
                   labelOptions = labelOptions(direction = "auto")) %>%
@@ -165,7 +178,24 @@ server <- function(input, output, session) {
       proxy %>% clearGroup("Urban Boundaries")
     }
   })
-  
+  # Observe the checkbox input to add/remove EJP layer
+  observe({
+    proxy <- leafletProxy("map")  # Use leafletProxy to modify the existing map
+    
+    if (input$show_EJP) {
+      # Add urban boundaries layer
+      proxy %>%
+        addPolygons(
+          data = EJP1, color = "orangered",
+          weight = 2, opacity = 0.9, 
+          fillColor = "orangered",
+          group = "Environmental Justice Populations"
+        ) #the name of the group the newly created layers should belong to
+    } else {
+      # Remove  layer
+      proxy %>% clearGroup("Environmental Justice Populations")
+    }
+  })
   # Observe hover events to update the bar plot
   observeEvent(input$map_shape_click, {
     censustract_name <- input$map_shape_click$id  # Get the hovered name
@@ -184,7 +214,7 @@ server <- function(input, output, session) {
       # Render the bar plot
       output$barplot <- renderPlot({
         group_cols<-c("#1f77b4","#2ca02c","salmon1", "#e377c2")
-        ggplot(tract_profile_mbmm,aes(x = NSES_VARS, y = theta_kj, fill = NSES_group)) +
+        ggplot(tract_profile_mbmm,aes(x = NSDOH_VARS, y = theta_kj, fill = NSDOH_group)) +
           geom_col()  +
           scale_fill_manual(values = group_cols) +
           labs(title = selected_ct_profile, x= "", y = "Probability",fill = "Neighborhood SDoH Domains") +

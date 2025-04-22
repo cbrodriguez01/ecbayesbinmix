@@ -135,6 +135,7 @@ p_names <- grep("^p\\.", colnames(params), value = TRUE)
 plot_param_group(mod2, p_names, title_prefix = "Mixing Proportions", group_size = 1) #bimodal distributions
 
 
+
 ##Plots like Figure 4 in the bayesbinmix paper----
 
 
@@ -360,7 +361,8 @@ freq_table <- table(cluster_assignment1$assignment_ecr)
 # Recode the factor based on the frequency of each category
 cluster_assignment1$assignment_ecr_size<- factor(cluster_assignment1$assignment_ecr, levels = names(sort(freq_table, decreasing = TRUE)))
 cluster_assignment1$nsdoh_profiles<- cluster_assignment1$assignment_ecr_size
-levels(cluster_assignment1$nsdoh_profiles)<- paste0("profile", 1:5, sep= " ")
+levels(cluster_assignment1$nsdoh_profiles)<- c("Profile 1", "Profile 2", "Profile 3",
+                                               "Profile 4", "Profile 5")
 
 
 
@@ -381,11 +383,11 @@ dev.off()
 
 
 dat_19<- dat_19 %>% mutate(cluster_size = case_when(
-  cluster== 1 ~ 3,
-  cluster== 2 ~ 4 ,
-  cluster== 3 ~ 2,
-  cluster== 4 ~ 5,
-  cluster== 5 ~ 1,
+  cluster== 1 ~ 5,
+  cluster== 2 ~ 3 ,
+  cluster== 3 ~ 1,
+  cluster== 4 ~ 2,
+  cluster== 5 ~ 4,
 ))
 
 
@@ -418,15 +420,41 @@ png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/
 barplot2
 dev.off()
 
-cluster_assignment1 %>% filter(nsdoh_profiles== "profile5 ") %>% select(NAME) 
+#cluster_assignment1 %>% filter(nsdoh_profiles== "profile5 ") %>% select(NAME) 
 
 
 #Save Datasets
 str(cluster_assignment1)
 str(dat_19)
+cluster_assignment1$census_tract<-str_sub(cluster_assignment1$GEOID,start=6, end = 11) 
+cluster_assignment1$countycode<-str_sub(cluster_assignment1$GEOID,start=3, end = 5)
+
+
 
 saveRDS(cluster_assignment1,"/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Model_run_updates/mbmm_clustersassign_042025.rds")
-saveRDS(dat_19,"/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Model_run_updates/mbmm_paramresults_042025.rds")
+saveRDS(cluster_assignment1 %>% select(GEOID, countycode, NAME, nsdoh_profiles),"/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/nsdoh_profiles_app_edited/nsdoh_data_042025.rds")
+saveRDS(dat_19,"/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/nsdoh_profiles_app_edited/mbmm_results_042025.rds")
 
 
+
+
+
+
+##Quick look over the  EJP data
+EJP_BG<-st_read("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/nsdoh_profiles_app_edited/ej2020/EJ_POLY.shp") 
+EJP_BG1<-EJP_BG %>% filter(EJ_CRITE_1 %in% c(2,3))
+str(EJP_BG1)
+EJP_BG1$census_tract<-str_sub(EJP_BG1$GEOID,start=6, end = 11) 
+EJP_BG1$countycode<-str_sub(EJP_BG1$GEOID,start=3, end = 5)
+EJP_BG1$bgcode<-str_sub(EJP_BG1$GEOID,start=12, end = 12)
+EJP_BG2<-EJP_BG1 %>% select(GEOGRAPHIC,EJ_CRITERI,EJ_CRITE_1, census_tract, countycode, bgcode)
+
+#merge EJ data
+cluser_dat<- cluster_assignment1 %>% select(GEOID, NAME,nsdoh_profiles, assignment_ecr,census_tract, countycode)
+
+merged_dat<-inner_join(cluser_dat, EJP_BG2, by=  c("census_tract", "countycode"))
+
+table(cluster_assignment1$assignment_ecr)
+table(merged_dat$nsdoh_profiles, merged_dat$EJ_CRITERI)
+table(merged_dat$assignment_ecr, merged_dat$EJ_CRITERI)
 
