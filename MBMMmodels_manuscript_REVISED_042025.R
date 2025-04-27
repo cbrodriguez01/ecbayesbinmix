@@ -370,15 +370,30 @@ boxplot2<- cluster_assignment1 %>% ggplot(aes(x = nsdoh_profiles, y = assignment
   geom_boxplot() +
   labs(fill = "NSDoH Profile Assignment", 
        y = "NSDoH Profile Assignment Probability", 
-       x= "") +
-  theme(text = element_text(size = 12),
+       x= "") + theme_classic() +
+  theme(text = element_text(size = 14),
         axis.ticks = element_blank(),
         axis.text.x =element_blank()) 
 boxplot2
 
-png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Model_run_updates/boxplot19_profilesprobs_size.png", width = 651, height = 604)
-boxplot2
+png("/Users/carmenrodriguez/Desktop/Research Projects/BayesBinMix/ecbayesbinmix/Model_run_updates/boxplot19_profilesprobs_size_wt.png", width = 651, height = 604)
+boxplot2 
 dev.off()
+
+#Table for supplementary materials
+cluster_assignment$GEOID<- acs19_bin$GEOID
+
+result <- apply(cluster_assignment %>% select(paste0("cluster", sep= " ", 1:5)) , 2, function(x) {
+  c(median = median(x), IQR = IQR(x))
+})
+
+
+median(cluster_assignment1$assignment_prob_ecr)
+IQR(cluster_assignment1$assignment_prob_ecr)
+
+cluster_assignment1 %>% group_by(nsdoh_profiles) %>% summarise( med = median(assignment_prob_ecr), iqr= IQR(assignment_prob_ecr))
+
+
 
 
 
