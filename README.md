@@ -12,13 +12,14 @@ For any further inquiries, please email `crodriguezcabrera@g.harvard.edu`.
 
 Main files for manuscript:
 
-* `CENSUSBinPrep_updated.R` : Data binarization for the multivariate Bernoulli mixture model.
+* `CENSUSBinPrep_.R` : Data binarization for the multivariate Bernoulli mixture model.
 
-* `MBMMmodels_manuscript.R`:  Multivariate Bernoulli mixture model output processing, and figures.
+* `MBMMmodels_manuscript_.R`:  Multivariate Bernoulli mixture model output processing, and figures.
 
-* `ECbayesbinmix_manuscript.R`: Tables and regression analysis.
+* `ECbayesbinmix_manuscript_.R`: Tables and regression analysis.
 
-* `nsdoh_profiles_app_urban`:  Folder containing code for the interactive map created with Shiny. This one contains the urban boundaries.
+* `nsdoh_profiles_app_edited`:  Folder containing code for the interactive map created with Shiny. This one contains the urban boundaries.
+
 
 
 
