@@ -174,3 +174,13 @@ t1flex(tab2) %>%
 
 
 
+
+# 1/26/26; as per reviwer recommendations... add IQRs to descriptive tables
+
+IQR_func<-function(x){
+  IQR(x, na.rm=TRUE)
+}
+
+iqrest<-as.matrix(acs2019[,3:16] %>% apply(2, IQR_func))
+
+IQR(acs2019$RenterOccupiedUnit, na.rm=TRUE) # 21.2

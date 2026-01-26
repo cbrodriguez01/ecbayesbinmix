@@ -369,4 +369,75 @@ write.xlsx(list(est_fc, est_fc_m1, est_fc_m2),file = "/Users/carmenrodriguez/Des
 # 
 
 
+#ADDED ON 1/26/26 BY Carmen Rodriguez (as per reviewers suggestions)
+
+
+
+
+#---Models with Yost index--- direction we expect based on prev literature
+
+#------CENSUS DATA  with clusters only & CENSUS DATA with Yost NSES Index only-------
+#load("./bayesbinmix_clustered_tracts.RData")
+load("./Census Data/YostIndexDat.RData")
+#Yost index data 2015-2019
+yostindex19$census_tract<-str_sub(yostindex19$GEOID,start=6, end = 11) 
+yostindex19$countycode<-str_sub(yostindex19$GEOID,start=3, end = 5)
+yostindex19<-yostindex19 %>% rename(yostindex = yostquintiles19)
+
+#Merge with EHR data 2015-2019
+str(ehrcensus19a)
+ehrcensus19b<- left_join(ehrcensus19a,yostindex19, by= "census_tract",  relationship = "many-to-many") #2412
+#Final
+ehrcensus19b_clean <- ehrcensus19b %>%
+  distinct(Patient_ID_Num, census_tract, countycode.x, countycode.y, optimal_care, .keep_all = TRUE)
+
+#sum(ehrcensus19a$Patient_ID_Num == ehrcensus19b_clean$Patient_ID_Num) #TRUE
+
+
+CreateTableOne(vars = "yostindex", strata = "nsdoh_profilesr", data = ehrcensus19b_clean,includeNA= T, addOverall = T)
+
+table(ehrcensus19b_clean$yostindex, ehrcensus19b_clean$nsdoh_profiles)
+
+
+
+#Logistic regression models with Yost index
+model_yost1<-brm(optimal_care_recode ~ yostindex,
+           data = ehrcensus19b_clean,
+           family = bernoulli(link='logit'), 
+           warmup = 500, 
+           iter = 2000, 
+           chains = 2, 
+           init= "0", 
+           cores=2,
+           seed = 2004) 
+
+#Adjusted model
+model_yost2<-brm(optimal_care_recode ~ yostindex + yeardx  + age_dx_cat + 
+                   insurance_status  + facility_type1_cat_1,
+                 data = ehrcensus19b_clean,
+                 family = bernoulli(link='logit'), 
+                 warmup = 500, 
+                 iter = 2000, 
+                 chains = 2, 
+                 init= "0", 
+                 cores=2,
+                 seed = 2004) 
+
+
+
+
+#Model 1
+summary(model_yost1)
+est1<-round(exp(fixef(model_yost1)[-1,-2]), 3)
+est1_dat<- as.data.frame(est1[1:4,])
+
+
+summary(model_yost2)
+est2<-round(exp(fixef(model_yost2)[-1,-2]), 3)
+est2_dat<- as.data.frame(est2[1:4,])
+
+
+est1_dat
+est2_dat
+
 
