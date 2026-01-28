@@ -20,6 +20,3 @@ Main files for manuscript:
 
 * `nsdoh_profiles_app_edited`:  Folder containing code for the interactive map created with Shiny. This one contains the urban boundaries.
 
-
-
-

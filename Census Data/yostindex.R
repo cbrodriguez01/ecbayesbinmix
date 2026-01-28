@@ -325,6 +325,8 @@ GEOID <- yost04$GEOID
 
 # Perform factor analysis
 fa_yost19 <- fa(yost04 %>% select(-GEOID),fm="ml")
+
+
 #Get factor scores and group them into percentiles, where 1=most affluent and 100=most deprived.
 yost05 <- mutate(arrange(as.data.frame(cbind(GEOID, fa_yost19$scores)), ML1), row=row_number())
 yost05$pctile <- ceiling((yost05$row-0.0001)/(nrow(yost05)/100))

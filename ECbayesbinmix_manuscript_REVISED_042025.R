@@ -188,17 +188,25 @@ mult1<-brm(optimal_care_recode ~ nsdoh_profilesr + yeardx  + age_dx_cat +
                  init= "0", 
                  cores=2,
                  seed = 2004) 
-# 
-# mult2<-brm(optimal_care_recode ~ nsdoh_profilesr + yeardx  + age_dx_cat + 
-#              insurance_status  + facility_type1_cat_1 + FIGOStage,
-#            data = ehrcensus19a,
-#            family = bernoulli(link='logit'), 
-#            warmup = 500, 
-#            iter = 2000, 
-#            chains = 2, 
-#            init= "0", 
-#            cores=2,
-#            seed = 2004) 
+tab_model(mult1,  p.style = "stars",
+          string.pred = "Coeffcient",
+          string.ci = "95% CI", show.intercept = F, digits = 3)
+
+#UNADJUSTED MODEL (ADDED 1/26/26)
+m_un<-brm(optimal_care_recode ~ nsdoh_profilesr,
+           data = ehrcensus19a,
+           family = bernoulli(link='logit'), 
+           warmup = 500, 
+           iter = 2000, 
+           chains = 2, 
+           init= "0", 
+           cores=2,
+           seed = 2004) 
+summary(m_un)
+tab_model(m_un,  p.style = "stars",
+          string.pred = "Coeffcient",
+          string.ci = "95% CI", show.intercept = F, digits = 3)
+
 
 #---Model convergence
 ###The plot only shows the iterations after the burn-in period. The two chains mix well 
@@ -217,6 +225,13 @@ est1<-round(exp(fixef(mult1)[-1,-2]), 3)
 est1_dat<- as.data.frame(est1[1:4,])
 est1_dat$NSDOH_prof<-2:5
 est1_dat$NSDOH_prof<-factor(est1_dat$NSDOH_prof, levels = 2:5, labels = paste0("Profile",sep= " ", 2:5))
+
+
+#Unadjusted model
+est2<-round(exp(fixef(m_un)[-1,-2]), 3)
+est2_dat<- as.data.frame(est2[1:4,])
+est2_dat$NSDOH_prof<-2:5
+est2_dat$NSDOH_prof<-factor(est2_dat$NSDOH_prof, levels = 2:5, labels = paste0("Profile",sep= " ", 2:5))
 
 
 
@@ -423,7 +438,16 @@ model_yost2<-brm(optimal_care_recode ~ yostindex + yeardx  + age_dx_cat +
                  cores=2,
                  seed = 2004) 
 
-
+#Model using the percentiles
+brm(optimal_care_recode ~ pctile,
+    data = ehrcensus19b_clean,
+    family = bernoulli(link='logit'), 
+    warmup = 500, 
+    iter = 2000, 
+    chains = 2, 
+    init= "0", 
+    cores=2,
+    seed = 2004) 
 
 
 #Model 1
